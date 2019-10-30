@@ -46,8 +46,8 @@
 			imgnum: 0,
 
 			latex: function (txt) {
-				let html = "<img src=\"http://latex.codecogs.com/" + this.mode + ".latex?$<equation>\" border=\"0\" class=\"latex latexblock\" />";
-				let htmlinline = "<img src=\"http://latex.codecogs.com/" + this.mode + ".latex?\\inline $<equation>\" border=\"0\" class=\"latex latexinline\" />";
+				let html = "<img src=\"https://latex.codecogs.com/" + this.mode + ".latex?$<equation>\" border=\"0\" class=\"latex latexblock\" />";
+				let htmlinline = "<img src=\"https://latex.codecogs.com/" + this.mode + ".latex?\\inline $<equation>\" border=\"0\" class=\"latex latexinline\" />";
 
 				txt = txt.replace(/\$(?<equation>.*?[^\\])\$/gs, htmlinline);
 				txt = txt.replace(/\\\[(?<equation>.*?[^\\])\\\]/gs, html);
