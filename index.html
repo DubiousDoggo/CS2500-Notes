@@ -1,0 +1,2029 @@
+<head>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+	<script type="text/javascript">
+		/* preprocess formatted code */
+		const format_code = () => {
+			const block = $("div.fcode");
+			block.children("p").html((index, html) => html.replace(/([\w\-]+)\(((?:\w,?)+)\)/g, "\\textsc{$1}($2)")) // Header
+			block.children("div").find("p").html((index, html) =>
+				html.replace(/\s?(?<!\\\w*?)(let|if|else|for|to|downto|while|return|and|or)\s/g, "\\textbf{$&}") // Bold keywords
+					.replace(/\s?(?<!\\\w*?)(new|be(?:\sa)?|arrays?)\s/g, "\\textup{$&}") // Keywords
+					.replace(/\s?(?<!\\\w*?)(\/\/.+)$/gm, "\\textup{$&}") // Comments
+					.replace("&lt;", "%3C") // HTML/URL escapes
+					.replace("&gt;", "%3E")
+					.replace("<=", "\\leq ")
+					.replace(">=", "\\geq ")
+					.replace("!=", "\\neq ")
+					.replace(/(?<!{\s*|\\|[a-zA-Z])([a-z\-]{2,})/g, "\\textrm{$1}") // variables
+			)
+
+			block.find("p").html((index, html) => LatexIT.latex(`$${html}$`))
+		}
+
+		$(format_code)
+	</script>
+	<script type="text/javascript">
+		/*
+		* LaTeX IT - JavaScript to Convert Latex within an HTML page into Equations
+		* Copyright (C) 2009 William Bateman, 2008 Waipot Ngamsaad 
+		
+		* This program is free software: you can redistribute it and/or modify
+		* it under the terms of the GNU General Public License as published by
+		* the Free Software Foundation, either version 3 of the License, or
+		* (at your option) any later version.
+		
+		* This program is distributed in the hope that it will be useful,
+		* but WITHOUT ANY WARRANTY; without even the implied warranty of
+		* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+		* GNU General Public License for more details.
+		
+		* You should have received a copy of the GNU General Public License
+		* along with this program.  If not, see <http://www.gnu.org/licenses/>.
+		*/
+
+		var LatexIT = {
+			mode: 'svg',
+			imgnum: 0,
+
+			latex: function (txt) {
+				let html = "<img src=\"http://latex.codecogs.com/" + this.mode + ".latex?$<equation>\" border=\"0\" class=\"latex latexblock\" />";
+				let htmlinline = "<img src=\"http://latex.codecogs.com/" + this.mode + ".latex?\\inline $<equation>\" border=\"0\" class=\"latex latexinline\" />";
+
+				txt = txt.replace(/\$(?<equation>.*?[^\\])\$/gs, htmlinline);
+				txt = txt.replace(/\\\[(?<equation>.*?[^\\])\\\]/gs, html);
+
+				return txt;
+			},
+
+			render: function (tag) {
+				var eqn = $(tag);
+				for (var i = 0; i < eqn.length; i++)
+					eqn[i].innerHTML = LatexIT.latex(eqn[i].innerHTML);
+
+			},
+
+			add: function (tag) {
+				window.addEventListener('load', () => LatexIT.render(tag), false);
+			},
+
+		};
+	</script>
+	<script type="text/javascript">
+		LatexIT.add('p');
+		LatexIT.add('li');
+	</script>
+	<script type="text/javascript">
+		// Table of Contents Generator
+		var index
+		const gen_table = (element) => {
+			let ret = '<p><a href="#' + index + '">' + $(element).html() + '</a></p>'
+			$(element).prepend('<a id=' + index + '></a>')
+			index++
+			if ($(element).next("div").children('h2,h3,h4').length > 0)
+				ret += ('<div class=indent>' + $(element).next().children('h2,h3,h4').map((i, elem) => gen_table(elem)).toArray().join('') + '</div>')
+			return ret
+		}
+		$(() => {
+			index = 0
+			$('#table_content').append(gen_table('h1'))
+		})
+	</script>
+	<link href="https://fonts.googleapis.com/css?family=Open+Sans:300|Roboto+Slab:300&display=swap" rel="stylesheet">
+	<style>
+		* {
+			font-family: 'Open Sans', sans-serif;
+			margin-block-end: 0em;
+			color: #ccc
+		}
+
+		h1,
+		h2,
+		h3,
+		h4 {
+			font-family: 'Roboto Slab', 'serif';
+		}
+
+		body {
+			background-color: #333
+		}
+
+		h2,
+		h3,
+		h4 {
+			margin-block-start: 1em;
+		}
+
+		img.latex {
+			filter: invert(.8);
+			vertical-align: middle;
+		}
+
+		p,
+		ul {
+			margin-block-start: 0.25em;
+		}
+
+		div.indent {
+			padding-left: 1em;
+		}
+
+		div.h2,
+		div.h3,
+		div.h4 {
+			padding-left: 1em;
+		}
+
+		.code div,
+		.fcode div {
+			margin-left: 2em;
+			padding-left: 0;
+		}
+
+		/* Column Display */
+		div.column-wrapper {
+			display: flex;
+		}
+
+		div.column {
+			flex: 50%;
+		}
+
+		div.main-col {
+			flex: 60%;
+			padding-bottom: 10%;
+		}
+
+		div.side-col {
+			flex: 20%;
+		}
+
+		div.nav-col {
+			position: fixed;
+			top: 0;
+			height: 100%;
+			overflow-y: auto;
+		}
+
+		#table_content {
+			padding-bottom: 10%;
+		}
+
+		div.nav-col::-webkit-scrollbar {
+			width: 0px;
+			background: transparent;
+		}
+
+
+		#table_contents p.H3 {
+			padding-left: 1em;
+		}
+
+		#table_contents p.H4 {
+			padding-left: 2em;
+		}
+
+
+		/* Tree CSS modified from Philipp Khn */
+		/* https://codepen.io/philippkuehn/pen/QbrOaN */
+		.tree ul {
+			position: relative;
+			padding: 1em 0 0 0;
+			white-space: nowrap;
+			margin: 0 auto;
+			margin-block-start: 0;
+		}
+
+		.tree>ul {
+			padding-bottom: 1em;
+		}
+
+		.tree ul::after {
+			content: '';
+			display: table;
+			clear: both;
+		}
+
+		.tree li {
+			display: inline-block;
+			vertical-align: top;
+			text-align: center;
+			list-style-type: none;
+			position: relative;
+			padding: 1em .5em 0 .5em;
+		}
+
+		.tree li::before,
+		.tree li::after {
+			content: '';
+			position: absolute;
+			top: 0;
+			right: 50%;
+			border-top: 1px solid #ccc;
+			width: 50%;
+			height: 1em;
+		}
+
+		.tree li::after {
+			right: auto;
+			left: 50%;
+			border-left: 1px solid #ccc;
+		}
+
+		.tree li:only-child::after,
+		.tree li:only-child::before {
+			display: none;
+		}
+
+		.tree li:only-child {
+			padding-top: 0;
+		}
+
+		.tree li:first-child::before,
+		.tree li:last-child::after {
+			border: 0 none;
+		}
+
+		.tree li:last-child::before {
+			border-right: 1px solid #ccc;
+			border-radius: 0 5px 0 0;
+		}
+
+		.tree li:first-child::after {
+			border-radius: 5px 0 0 0;
+		}
+
+		.tree ul ul::before {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: 50%;
+			border-left: 1px solid #ccc;
+			width: 0;
+			height: 1em;
+		}
+
+		.tree ul ul.dots::before {
+			border-left: 3px dotted #ccc;
+			width: 0;
+		}
+
+		.tree li p {
+			border: 1px solid #ccc;
+			padding: .5em .75em;
+			text-decoration: none;
+			display: inline-block;
+			border-radius: 5px;
+			position: relative;
+			top: 1px;
+			margin-block-start: 0;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="column-wrapper">
+		<div class="side-col">
+			<div class="nav-col">
+				<p id="table_content"></p>
+			</div>
+		</div>
+		<div class="main-col">
+			<h1>CS 2500 Algorithms</h1>
+			<div class=h1>
+				<h2>Introduction</h2>
+				<div class=h2>
+					<h3>What is an Algorithm</h3>
+					<div class=h3>
+						<p>A well defined computational procedure that transforms its input through a sequence of steps</p>
+						<p>An algorithm must have:</p>
+						<ul>
+							<li>Input</li>
+							<li>Output</li>
+							<li>It must terminate</li>
+						</ul>
+					</div>
+
+					<h3>Computational Problem</h3>
+					<div class="h3">
+						<p>Formal definition for a broad problem which there are many different solutions to solve the <u>input/output
+								relationship</u></p>
+						<h4>Examples</h4>
+						<div class="h4">
+							<h4>Summation Problem</h4>
+							<div class="h4">
+								<p>Input: A sequence of n numbers $a_1,a_2,\ldots,a_n$</p>
+								<p>Output: The sum $S$ of the input sequence such that $S=\sum_{i=0}^na_i$</p>
+							</div>
+							<h4>Sorting problem</h4>
+							<div class="h4">
+								<p>Input: A sequence of $n$ numbers $a_1, a_2,\ldots,a_n$</p>
+								<p>Output: A permutation $a_1',a_2',\ldots,a_n'$ of the input such that $a_1\leq a_2\leq\ldots a_n$</p>
+							</div>
+						</div>
+					</div>
+
+					<h3>Correctness</h3>
+					<div class=h3>
+						<p>An algorithm is said to be 'correct' if the input/output relation holds for every input instance</p>
+						<p>Correctness can be formally proven using a <u>loop invariant</u></p>
+						<div class=indent>
+							<p>A loop invariant is a condition that must hold before and after each iteration of the algorithm</p>
+							<p>This can be broken down into 3 parts</p>
+							<ul>
+								<li>Initialization</li>
+								<li>Maintenance</li>
+								<li>Termination</li>
+							</ul>
+						</div>
+					</div>
+
+					<h3>Efficiency</h3>
+					<div class=h3>
+						<p>What environment do we use when analyzing an algorithm?</p>
+						<ul>
+							<li>A generic one-process, RAM model. No concurrency</li>
+							<li>Instructions are executed one by one</li>
+							<li>Instructions take a constant amount of time</li>
+							<li>Limit on the size and types of data</li>
+							<li>We don't have to worry about memory hierarchy</li>
+						</ul>
+						<p><em>Disclaimer! This is only for determining complexity and does not actually happen</em></p>
+
+						<h4>Examples</h4>
+						<div class="h4">
+							<h4>Insertion Sort</h4>
+							<div class=h4>
+								<p>Complexity: $O(n^2) = c_1n^2$</p>
+								<p>Arbitrary constant: $c_1 = 2$</p>
+								<p>Machine speed: $10^9$ instructions/sec</p>
+								<p>Input: $10^6$ numbers</p>
+								<p>Time: $\frac{2(10^6)^2}{10^9}=2000$ seconds</p>
+							</div>
+
+							<h4>Merge Sort</h4>
+							<div class=h4>
+								<p>Complexity: $O(n\lg n) = c_2n\log_2(n)$</p>
+								<p>Arbitrary constant: $c_2 = 50$</p>
+								<p>Machine Speed: $10^7$ instructions/sec</p>
+								<p>Input: $10^6$ numbers</p>
+								<p>Time: $\frac{50\cdot10^6\log_2(10^6)}{10^7} = 99.7$ seconds</p>
+							</div>
+							<p>Note that merge sort is better even on a worse computer</p>
+						</div>
+					</div>
+				</div>
+
+				<h2>Recursion</h2>
+				<div class=h2>
+					<p>An algorithm which calls itself</p>
+					<p>A recursive algorithm is made of 2 parts</p>
+					<ul>
+						<li>The base base</li>
+						<li>The recursive call</li>
+					</ul>
+					<p>For example, we can define factorial recursively as</p>
+					<div class="indent">
+						<p>\[n!=\begin{cases}n\cdot(n-1)!&,n>1\\1&,n=1\end{cases}\]</p>
+					</div>
+
+					<h3>Divide and Conquer</h3>
+					<div class=h3>
+						<p>The divide and conquer method contains 3 steps:</p>
+						<ul>
+							<li>Divide</li>
+							<li>Conquer</li>
+							<li>Combine</li>
+						</ul>
+
+						<h4>Analysing Divide and Conquer</h4>
+						<div class=h4>
+							<p>Let $T(n)$ be the running time on a problem with input size $n$</p>
+							<p>There exists a step when we stop breaking down the problem into sub processes, the <u>Base Case</u></p>
+							<p>The divide phase each step yields a sub problem smaller than the original, $\frac{n}{b}$ &mdash; e.g. for merge sort,
+								$b=2$</p>
+							<p>Using the previous definition, it takes $T(\frac{n}{b})$ time to solve one sub problem of size $\frac{n}{b}$</p>
+							<p>An algorithm may break into multiple sub problems $a$, taking $aT(\frac{n}{b})$ time</p>
+							<p>Let $D(n)$ be the time to divide and $C(n)$ be the time to combine the solutions of the sub-problems into the solution
+								of the original</p>
+							<p>For some input size $n\leq c$, where $c$ is the input size of the base case, the problem takes $\Theta(1)$</p>
+							<p>This gives the <u>General Recurrence Equation</u> for divide and conquer:</p>
+							<p>$T(n)=\begin{cases}aT(\frac{n}{b})+D(n)+C(n)&,n>c\\\Theta(1)&,n\leq c\end{cases}$</p>
+						</div>
+
+						<h4>Merge Sort</h4>
+						<div class=h4>
+							<p>Divide: Divide the $n$-element sequence into two $n/2$ element sequences</p>
+							<p>Conquer: Sort the two subsequences recursively using merge sort</p>
+							<p>Combine: Merge the two subsequences in the correct order</p>
+							<p>Base Case: A sequence of length 1 (this is trivially sorted)</p>
+
+							<h4>MERGE PseudoCode</h4>
+							<div class=h4>
+								<div class="fcode">
+									<p>Merge(A,p,q,r)</p>
+									<div>
+										<p>n_1 = q - p + 1</p>
+										<p>n_2 = r - q</p>
+										<p>let L[1\ldots n_1 + 1] and R[1\ldots n_2 + 1] be new arrays</p>
+										<p>for i = 1 to n_1</p>
+										<div>
+											<p>L[i] = A[p + i - 1]</p>
+										</div>
+										<p>for j = 1 to n_2</p>
+										<div>
+											<p>R[j] = A[q + j]</p>
+										</div>
+										<p>L[n_1 + 1] = \infty</p>
+										<p>R[n_2 + 1] = \infty</p>
+										<p>i=1</p>
+										<p>j=1</p>
+										<p>for k = p to r</p>
+										<div>
+											<p>if L[i] \leq R[j]$</p>
+											<div>
+												<p>A[k] = L[i]</p>
+												<p>i = i + 1</p>
+											</div>
+											<p>else A[k] = R[j]</p>
+											<div>
+												<p>j = j + 1</p>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<h4>Formal Proof</h4>
+								<div class=h4>
+									<h4>Loop Invariant:</h4>
+									<div class="h4">
+										<p> At the start of each iteration of the for loops of lines 12-17 the subarray $A[p\ldots k-1]$ contains the
+											$k-p$
+											smallest elements of $L[1\ldots n_1+1]$ and $R[1\ldots n_2+1]$, in sorted order. Moreover, $L[i]$ and
+											$R[j]$ are
+											the smallest elements of the arrays that have not been copied back into $A$.
+										</p>
+									</div>
+
+									<h4>Initialization:</h4>
+									<div class="h4">
+										<p> prior to the first iteration of the loop $k=p$ the subarray is $A[p\ldots k-1]$, thus is empty. This empty
+											subarray contains the $k-p=0$ smallest elements of $L$ and $R$. Since $i=j=1$ both $L[i]$ and $R[j]$ are
+											the
+											smallest elements of their arrays that have not been copied back into $A$.
+										</p>
+									</div>
+
+									<h4>Maintenance:</h4>
+									<div class="h4">
+										<p> let $L[i]\leq R[j]$, Thus $L[i]$ is the smallest element yet to be copied to $A$. So since $A[p\ldots
+											k-1]$
+											contains $k-p$ smallest elements, line 14 copies $L[i]$ into $A[k]$. Now $A[p\ldots k]$ will contain the
+											smallest
+											$k-p+1$ elements. Incrementing $i$ (line 15) reestablishes the loop invariant for the next
+											iteration.<br />
+											Next case for Maintenance: if $L[i]&gt;R[j]$, lines 16-17 perform the appropriate action to maintain the
+											loop
+											invariant.
+										</p>
+									</div>
+
+									<h4>Termination:</h4>
+									<div class="h4">
+										<p> At termination, $k=r+1$, by the loop invariant, the subarray $A[p\ldots k-1]$ is $A[p\ldots r]$ which
+											contains the
+											$k-p=r-p+1$ smallest elements of $L[1\ldots n+1]$ and $R[1\ldots n+1]$ in sorted order. The array $L$ and
+											$R$
+											together contain $n+n_2+2=r-p+3$ elements. All but the two largest have been copied into $A$.
+										</p>
+									</div>
+
+								</div>
+							</div>
+							<h4>Analysis</h4>
+							<div class=h4>
+								<p>To find the runtime of the $\textsc{Merge}$ routine, we first associate a cost, $c_i$, with each line $i$</p>
+								<p>We then count how many times each line is called and multiplly it by its cost</p>
+								<p>The sum of each of these terms is the total cost of the routine</p>
+								<p>How many times is each line called?</p>
+								<div class=column-wrapper>
+									<div class=column>
+										<div class="code">
+											<p>MERGE $(A,p,q,r)$</p>
+											<div>
+												<p>$n_1=q-p+1$</p>
+												<p>$n_2=r-q$</p>
+												<p>let $L[1\ldots n_1+1]$ and $R[1\ldots n_2+1]$ be new arrays</p>
+												<p>for $i=1$ to $n_1$</p>
+												<div>
+													<p>$L[i]=A[p+i-1]$</p>
+												</div>
+												<p>for $j=1$ to $n_2$</p>
+												<div>
+													<p>$R[j]=A[q+j]$</p>
+												</div>
+												<p>$L[n_1+1]=\infty$</p>
+												<p>$R[n_2+1]=\infty$</p>
+												<p>$i=1$</p>
+												<p>$j=1$</p>
+												<p>for $k=p$ to $r$</p>
+												<div>
+													<p>if $L[i]\leq R[j]$</p>
+													<div>
+														<p>$A[k]=L[i]$</p>
+														<p>$i=i+1$</p>
+													</div>
+													<p>else $A[k]=R[j]$</p>
+													<div>
+														<p>$j=j+1$</p>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+									<div class=column>
+										<li>1</li>
+										<li>1</li>
+										<li>1</li>
+										<li>n_1+1</li>
+										<li>n_1</li>
+										<li>n_2+1</li>
+										<li>n_2</li>
+										<li>1</li>
+										<li>1</li>
+										<li>1</li>
+										<li>1</li>
+										<li>n</li>
+										<li>n-1</li>
+										<li>n_1</li>
+										<li>n_1</li>
+										<li>n_2</li>
+										<li>n_2</li>
+									</div>
+								</div>
+							</div>
+
+
+							<p>This gives the total runtime of</p>
+							<p>\[T(n)=c_1+c_2+c_3+(n_1+1)c_4+n_1c_5+(n_2+1)c_6+\ldots+n_2c_{16}+n_2c_{17}\]</p>
+
+						</div>
+
+						<h4>MERGE SORT PseudoCode</h4>
+						<div class=h4>
+							<div class="code">
+								<p>$\textsc{Merge-Sort}(A,p,r)$</p>
+								<div>
+									<p>$\textup{if }p&lt;r$</p>
+									<div>
+										<p>$q=\left\lfloor\frac{p+r}{2}\right\rfloor$</p>
+										<p>$\textsc{Merge-Sort}(A,p,q)$</p>
+										<p>$\textsc{Merge-Sort}(A,q+1,r)$</p>
+										<p>$\textsc{Merge}(A,p,q,r)$</p>
+									</div>
+								</div>
+							</div>
+
+							<h4>Analysis</h4>
+							<div class=h4>
+								<p>For simplicity, assume $n$ is a power of 2</p>
+								<p>Let $T(n)$ be the worst case runtime</p>
+								<p>Base Case: $T(n)=\Theta(1),n=1$</p>
+								<p>Divide: (line 2) $D(n)=\Theta(1),n>1$</p>
+								<p>Conquer: $2T(\frac{n}{2})$</p>
+								<p>Combine: $\Theta(n)$</p>
+								<p>$T(n)=\begin{cases}2T(\frac{n}{2})+\Theta(1)+\Theta(n)&,n>1\\\Theta(1)&,n=1\end{cases}$</p>
+								<p>To find the worst case runtime, plug in constants:</p>
+								<p>$T(n)=\begin{cases}2T(\frac{n}{2})+cn&,n>1\\c&,n=1\end{cases}$ where $c$ is the worst case runtime of the base case
+								</p>
+								<p>This gives us a recursive function which can be simplified using a <u>Recursion Tree</u></p>
+							</div>
+
+							<h4>Recursion Tree</h4>
+							<div class=h4>
+								<p>Since we assume $n$ is power of $2$ we know each level $i$ will have $2^i$ nodes</p>
+								<p>We know the number of levels is $\lg(n)+1$</p>
+
+								<div class=tree>
+									<ul>
+										<li>
+											<p>\[cn\]</p>
+											<ul>
+												<li>
+													<p>\[\frac{cn}{2}\]</p>
+													<ul>
+														<li>
+															<p>\[\frac{cn}{4}\]</p>
+															<ul class=dots></ul>
+														</li>
+														<li>
+															<p>\[\frac{cn}{4}\]</p>
+															<ul class=dots></ul>
+														</li>
+													</ul>
+												</li>
+												<li>
+													<p>\[\frac{cn}{2}\]</p>
+													<ul>
+														<li>
+															<p>\[\frac{cn}{4}\]</p>
+															<ul class=dots></ul>
+														</li>
+														<li>
+															<p>\[\frac{cn}{4}\]</p>
+															<ul class=dots></ul>
+														</li>
+													</ul>
+												</li>
+											</ul>
+										</li>
+									</ul>
+								</div>
+								<p>Cost = sum of nodes</p>
+								<p>\[cn+2\frac{cn}{2}+4\frac{cn}{4}+\ldots+n\frac{cn}{n}=cn(\lg(n)+1)=\Theta(n \lg{n})\]</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<h2>Asymptotic Efficiency</h2>
+				<div class=h2>
+					<p>When looking at algorithms, we look at input sizes large enough to make only the order of growth of the running time relevant
+					</p>
+					<p>This is called the <u>Asymptotic Bound</u></p>
+
+					<h3>Big Theta Notation</h3>
+					<div class=h3>
+						<p>For a function $g(n)$, we denote $\Theta(g(n))$ to be the set of functions</p>
+						<p> \[\Theta(g(n))=\{f(n):\exists\] positive constants \[c_1,c_2,c_3\] and \[n_0\] s.t.
+							\[0\leq c_1g(n)\leq f(n)\leq c_2g(n),\forall n\geq n_0\}\]</p>
+						<p>Essentially this says that $f(n)$ has the same asymptotic behaviour as $g(n)$ when $n&gt;n_0$</p>
+						<p>Typically we ignore the lower order terms and the constant in front of the highest order term</p>
+						<p><b>Example 1:</b> Prove $\frac{1}{2}n^2-3n=\Theta(n^2)$</p>
+						<div class=indent>
+							<p>For all$n\geq n_0$, dividing by $n^2$ yields $c_1\leq \frac{1}{2}-\frac{3}{n}\leq c_2$
+							</p>
+							<p>For $n\geq 1,c_2\geq \frac{1}{2}$, the right hand side holds</p>
+							<p>For $n\geq 7,c_1\leq \frac{1}{14}$, the left hand side holds</p>
+							<p>Thus, if $c_1=\frac{1}{14},c_2=\frac{1}{2}$ and $n_0=7$, we can verify
+								$\frac{1}{2}n^2-3n=\Theta(n^2)$</p>
+						</div>
+						<p><b>Example 2:</b> Prove $6n^3\neq\Theta(n^2)$</p>
+						<div class=indent>
+							<p>Proof by contradiction</p>
+							<p>Assume $c_2$ and $n_0$ exist s.t. $6n^3\leq c_2n^2$ for all $n\geq n_0$</p>
+							<p>If we divide by $6n^2$ for all $n\geq n_0$ we get $n\leq\frac{c_2}{6}$</p>
+							<p>This equality cant hold for arbitrarily large $n$ since $c_2$ is constant. Thus we
+								know $6n^3\neq\Theta(n^2)$</p>
+						</div>
+						<p><b>Example 3:</b> Prove $10n^2+4n+2=\Theta(n^2)$</p>
+						<div class=indent>
+							<p>We need to find $c_1,c_2,n_0$ s.t. $c_1n^2\leq 10n^2+4n+2\leq c_2n^2$</p>
+							<p>For all $n\geq n_0$ dividing by $n^2$ we get $c_1\leq
+								10+\frac{4}{n}+\frac{2}{n^2}\leq c_2$</p>
+							<p>For $n\geq 1,c_2\geq 16$, the right hand side holds</p>
+							<p>For $n\geq 1,c_1\leq 10$, the left hand side holds</p>
+							<p>Thus, if $c_1=10,c_2=16$ and $n_0=1$, we can verify $10n^2+4n+2=\Theta(n^2)$</p>
+						</div>
+						<p>In general, these problems follow the form</p>
+						<p>Prove that $f(n)$ is $\Theta(g(n))$</p>
+						<p>We need to find constants $c_1,c_2,n_0$ s.t. $c_1g(n)\leq f(n)\leq c_2g(n)$ for all $n\geq n_0$</p>
+						<p>Dividing the equation above by $g(n)$ yeilds \[c_1\leq\frac{f(n)}{g(n)}\leq c_2\]</p>
+						<p>Find \[\lim_{n\to\infty}\frac{f(n)}{g(n)}\to a,\]</p>
+						<p>If \[a\leq 0\] or \[a=\infty\], \[f(n)\neq\Theta(g(n)\]</p>
+						<p>Find \[n_0,\frac{f(n)}{g(n)}&gt;0\forall n\geq n_0\]</p>
+						<p>Find \[b=\frac{f(n_0)}{g(n_0)}\]</p>
+						<p>For $c_1\leq\min(a,b)$ and $n\geq n_0$, the left side holds: \[c_1\leq\frac{f(n)}{g(n)}\implies c_1g(n)\leq f(n)\forall
+							n\geq n_0\]</p>
+						<p>For $c_2\geq\max(a,b)$ and $n\geq n_0$, the right side holds: \[\frac{f(n)}{g(n)}\leq c_2\implies f(n)\leq c_2g(n)\forall
+							n\geq n_0\]</p>
+						<p>We have proven \[c_1g(n)\leq f(n)\leq c_2g(n)\forall n\geq n_0,\] Thus \[f(n)=O(g(n))\]</p>
+					</div>
+
+					<h3>Big O Notation</h3>
+					<div class=h3>
+						<p>For a given function $g(n)$, we denote $O(g(n))$ to be the set of functions</p>
+						<p>\[O(g(n))=\{f(n):\exists\] positive constants \[c\] and \[n_0\] s.t. \[0\leq f(n)\leq cg(n),\forall n\geq n_0\}\]</p>
+						<p>The asymptotic upper bound</p>
+						<p><b>Example:</b> Prove $10n^2+3n+1=O(n^2)$</p>
+						<div class=indent>
+							<p>We need to find $c$ and $n_0$ s.t. $0\leq 10n^2+3n+1\leq cn^2$</p>
+							<p>For all $n\geq n_0$ divide by $n^2$ and get $0\leq 10+\frac{3}{n}+\frac{1}{n^2}\leq c$</p>
+							<p>$\lim_{n\to\infty}(10+\frac{3}{n}+\frac{1}{n^2})=10\leq c$</p>
+							<p>When $n=1,10+\frac{3}{n}+\frac{1}{n^2}=14\geq 0$</p>
+							<p>For $n\geq 1, c\geq 14$, right side holds</p>
+							<p>For $n=1,10+\frac{3}{n}+\frac{1}{n^2}\geq 0$, the left hand side holds</p>
+							<p>Thus, for $n_0=1,c=14$, we can verify $10n^2+3n+1=O(n^2)$</p>
+						</div>
+					</div>
+
+					<h3>Big Omega Notation</h3>
+					<div class=h3>
+						<p>For a given function $g(n)$, we denote $\Omega(g(n))$ to be the set of functions</p>
+						<p>\[\Omega(g(n))=\{f(n):\exists\] a positive constant \[c\] and \[n_0\] s.t. \[0\leq cg(n)\leq f(n),\forall n\geq n_0\}\]</p>
+						<p>The asymptotic lower bound</p>
+						<p><b>Example:</b> Prove $6n^4+2n^2=\Omega(n^4)$</p>
+						<div class=indent>
+							<p>We need to find $c$ and $n_0$ s.t. $0\leq cn^4\leq 6n^4+2n^2$</p>
+							<p>For all $n\geq n_0$, divide by $n^4$ and get $0\leq c\leq 6+\frac{2}{n^2}$</p>
+							<p>For $c\leq 6,n\geq 1$, the right hand side holds</p>
+							<p>For $c\leq 6$ (assume $c$ is never negative), the left hand side holds </p>
+							<p>Thus, for $c=6,n_0=1$, we can verify $6n^4+2n^2=\Omega(n^4)$</p>
+						</div>
+					</div>
+
+					<h3>Little o Notation</h3>
+					<div class=h3>
+						<p>Denotes an upper bound that is not asymptotically tight</p>
+						<p>For a given function $g(n)$, we denote $o(g(n))$ to be the set of functions</p>
+						<p>\[o(g(n))=\{f(n):\forall c&gt;0,\exists\] a positive constant \[n_0&gt;0\] s.t. \[0\leq f(n)%3Ccg(n),\forall n\geq n_0\}\]
+						</p>
+						<p>We can prove that a function $f(n)=o(g(n))$ by showing that \[\lim_{n\to\infty}\frac{f(n)}{g(n)}\to 0\]</p>
+						<p><b>Example:</b> Prove: $2n=o(n^2)$ but $2n^2\neq o(n^2)$</p>
+						<div class=indent>
+							<p>\[\lim_{n\to\infty}\frac{f(n)}{g(n)}=\lim_{n\to\infty}\frac{2n}{n^2}=\lim_{n\to\infty}\frac{2}{cn}\to 0\]</p>
+							<p>\[\lim_{n\to\infty}\frac{f(n)}{g(n)}=\lim_{n\to\infty}\frac{2n^2}{n^2}=\lim_{n\to\infty}2=2\]</p>
+						</div>
+					</div>
+
+					<h3>Little omega Notation</h3>
+					<div class=h3>
+						<p>Denotes a lower bound that is not asymptotically tight</p>
+						<p>For a given function $g(n)$, we denote $\omega(g(n))$ to be the set of functions</p>
+						<p>\[\omega(g(n))=\{f(n):\forall c&gt;0,\exists\] a positive constant \[n_0&gt;0\] s.t. \[0\leq cg(n)%3Cf(n),\forall n\geq
+							n_0\}\]</p>
+						<p>We can prove that a function $f(n)=\omega(g(n))$ by showing that \[\lim_{n\to\infty}\frac{f(n)}{g(n)}\to\infty\]</p>
+						<p><b>Example:</b> Prove: $\frac{n^2}{2}=\omega(n)$ but $\frac{n^2}{2}\neq \omega(n^2)$</p>
+						<div class=indent>
+							<p>\[\lim_{n\to\infty}\frac{f(n)}{g(n)}=\lim_{n\to\infty}\frac{\frac{n^2}{2}}{n}=\lim_{n\to\infty}\frac{n}{2}\to\infty\]
+							</p>
+							<p>\[\lim_{n\to\infty}\frac{f(n)}{g(n)}=\lim_{n\to\infty}\frac{\frac{n^2}{2}}{n^2}=\lim_{n\to\infty}\frac{1}{2}=\frac{1}{2}\neq\infty\]
+							</p>
+						</div>
+					</div>
+
+					<h3>Properties of asymptotes</h3>
+					<div class=h3>
+						<p>Transitivity: True for: $\Theta,O,\Omega,o,\omega$</p>
+						<div class=indent>
+							<p>\[f(n)=O(g(n)),g(n)=O(h(n))\implies f(n)=O(h(n))\]</p>
+						</div>
+						<p>Reflexivity: True for: $O,\Theta,\Omega$</p>
+						<div class=indent>
+							<p>\[f(n)=O(f(n))\]</p>
+						</div>
+						<p>Symmetry</p>
+						<div class=indent>
+							<p>\[f(n)=\Theta(g(n))\iff g(n)=\Theta(f(n))\]</p>
+						</div>
+						<p>Transpose Symmetry: True for: $O,\Omega$ and $o,\omega$</p>
+						<div class=indent>
+							<p>\[f(n)=O(g(n))\iff g(n)=\Omega(f(n))\]</p>
+						</div>
+					</div>
+					<h3>Extra Properties</h3>
+					<div class=h3>
+						<p>Sterling’s approximation</p>
+						<div class=indent>
+							<p>$n!=o(n^n)$</p>
+							<p>$n!=\omega(n^2)$</p>
+							<p>$\lg n!=\Theta(n\lg n)$</p>
+						</div>
+						<p>Arithmetic Series</p>
+						<div class=indent>
+							<p>\[\sum_{k=1}^nk=1+2+3+\ldots+n=\frac{1}{2}n(n+1)=\Theta(n^2)\]</p>
+						</div>
+						<p>Geometric Series</p>
+						<div class=indent>
+							<p>\[\sum_{k=0}^nx^k=1+x+x^2+\ldots+x^n=\frac{x^{n+1}-1}{x-1}\]</p>
+						</div>
+						<p>Harmonic Series</p>
+						<div class=indent>
+							<p>\[\sum_{k=1}^n\frac{1}{k}=\ln n+O(1)\]</p>
+						</div>
+						<p>Telescoping Series</p>
+						<div class=indent>
+							<p>\[\sum_{k=1}^na_k-a_{k-1}=a_n-a_0\]</p>
+							<p>\[\sum_{k=0}^{n-1}a_k-a_{k+1}=a_0-a_n\]</p>
+							<p>\[\sum_{k=1}^{n-1}\frac{1}{k(k+1)}=1-\frac{1}{n}\]</p>
+						</div>
+					</div>
+				</div>
+
+				<h2>More loop invariants</h2>
+				<div class=h2>
+					<div class="code">
+						<p>$\textsc{SUM}(n)$</p>
+						<div>
+							<p>$\textrm{sum}\leftarrow 0$</p>
+							<p>$i\leftarrow 1$</p>
+							<p>$\textup{while }i\leq n$</p>
+							<div>
+								<p>$\textrm{sum}\leftarrow\textrm{sum}+1$</p>
+								<p>$i\leftarrow i+1$</p>
+							</div>
+							<p>$\textup{return }\textrm{sum}$</p>
+						</div>
+					</div>
+					<p>Input: A non-negative integer $n$</p>
+					<p>Output: $S$ where $S=\sum_{k=1}^nk$</p>
+					<p><b>Loop Invariant:</b> At the start of each iteration of the loop (lines 4-6), $sum$ will contain $S$ where
+						$S=\sum_{k=1}^{i-1}k$</p>
+					<p><b>Initialization:</b> At Initialization, $i=1$. Thus the sum will be $S=\sum_{k=1}^0k$, which is an empty sum. This is equal
+						to zero and
+						therefore the loop invariant holds.
+					</p>
+					<p><b>Maintenence:</b> We assume that the loop invariant holds for $i=j$, thus [citation needed]</p>
+					<p><b>Termination:</b> At termination, $i=n+1$. If we plug this $i$ back into the loop invariant, we get that
+						$sum$ will contain $S$ where $S=\sum_{k=1}^nk$.
+						Since we return sum in line 7, the algorithm output matches the problem output. Thus we conclude that
+						the loop invariant and algorithm are correct.
+					</p>
+				</div>
+
+				<h2>Maximum Subarray Probelm</h2>
+				<div class=h2>
+
+					<p>Input: an Array $A[1\ldots n]$ of $n$ numbers</p>
+					<p>Output: Indices $i$ and $j$ with $1\leq i\leq j\leq n$ such that the sum $S=\sum_{x=i}^jA[x]$ is the largest possibles</p>
+					<p>Divide and conquer approach:</p>
+					<p>Split into smaller arrays of low, mid, and high. Only based on the indices in the array</p>
+					<p>When it crosses the middle, you would start by working your way left j = mid</p>
+					<p>Another mid case, you start working right and i = mid+1. </p>
+
+					<div class="fcode">
+						<p>Find-Max-Crossing-Subarray(A,low,mid,high)</p>
+						<div>
+							<p>left-sum = -\infty</p>
+							<p>sum = 0</p>
+							<p>for i = mid downto low</p>
+							<div>
+								<p>sum = sum + A[i]</p>
+								<p>if sum &gt; left-sum</p>
+								<div>
+									<p>left-sum = sum</p>
+									<p>max-left = i</p>
+								</div>
+							</div>
+							<p>right-sum = -\infty</p>
+							<p>sum = 0</p>
+							<p>for j = mid + 1 to high</p>
+							<div>
+								<p>sum = sum + A[j]</p>
+								<p>if sum &gt; right-sum</p>
+								<div>
+									<p>right-sum = sum</p>
+									<p>max-right = j</p>
+								</div>
+							</div>
+							<p>return (max-left,max-right,left-sum+right-sum)</p>
+						</div>
+					</div>
+
+					<div class="fcode">
+						<p>Find-Maximum-Subarray(A,low,high)</p>
+						<div>
+							<p>if high == low</p>
+							<div>
+								<p>return (low,high,A[low]) // base case: only one element</p>
+							</div>
+							<p>else</p>
+							<div>
+								<p>mid = \lfloor (low + high)/2 \rfloor</p>
+								<p>(left-low,left-high,left-sum) = \textsc{Find-Maximum-Subarray}(A,low,mid)</p>
+								<p>(right-low,right-high,right-sum) = \textsc{Find-Maximum-Subarray}(A,mid+1,high)</p>
+								<p>(cross-low,cross-high,cross-sum) = \textsc{Find-Max-Crossing-Subarray}(A,low,mid,high)</p>
+								<p>if left-sum \geq right-sum and left-sum \geq cross-sum</p>
+								<div>
+									<p>return (left-low,left-high,left-sum)</p>
+								</div>
+								<p>else if right-sum \geq left-sum and right-sum \geq cross-sum</p>
+								<div>
+									<p>return (right-low,right-high,right-sum)</p>
+								</div>
+								<p>else</p>
+								<div>
+									<p>return (cross-low,cross-high,cross-sum)</p>
+								</div>
+							</div>
+						</div>
+					</div>
+					<p>Base Case when $i=j=\Theta(1)$ line 2</p>
+					<p>1,3,7-11 = $\Theta(1)$</p>
+					<p>$T(n)=$ amount of time for pseudocode</p>
+					<p>4-5 = $T(n/2)$ means adds $2T(n/2)$</p>
+					<p>6 = $\Theta(n)$</p>
+					<p>$T(n)=\Theta(1)+2T(n/2)+\Theta(n)=2T(n/2)+\Theta(n)$</p>
+					<p>\[T(n)=\begin{cases}\Theta(1)&,n=1\\
+						2T(n/2)+\Theta(n)&,n>1\end{cases}\]</p>
+				</div>
+
+				<h2>Substitution Method</h2>
+				<div class="h2">
+					<p>Two steps for substitution</p>
+					<ul>
+						<li>Guess the form of the solution</li>
+						<li>Use mathematical induction to find the constants and show that the solution works.</li>
+					</ul>
+
+					<p>First there needs to be a large enough c that the bound works for the boundary condition</p>
+					<p>Abuse $O$ to find some value $n_0&gt;n$ where bound holds</p>
+					<p>Generally assume $T(1) = 1$ and find val $n$ that works</p>
+					<h3>Examples</h3>
+
+					<div class="h3">
+						<h4>Example 1</h4>
+						<div class="h4">
+							<p>Prove $T(n)=2T(\left\lfloor n/2\right\rfloor)+n$ is $O(n\lg n)$</p>
+							<p>Base Case</p>
+							<p>Prove $T(n)\leq cn\lg n$ for some constant $c&gt;0$ and for all $n\geq n_0$ where we pitch $n$</p>
+							<p>Assume $T(1)=1$ is $T(n)\leq cn\lg n$ for $n=1$</p>
+							<p>$T(n)\leq c\lg 1$</p>
+							<p>$1$ is not $\leq 0$</p>
+							<p>$T(2)=2T(1)+2=2(1)+2=4$</p>
+							<p>$T(n)\leq cn\lg n$</p>
+							<p>$T(2)\leq c2\lg 2$</p>
+							<p>$4\leq 2c$, when $c\geq 2$</p>
+							<p>Lets Assume this bound holds for all positive $m&lt;n$, in particular $m=\left\lfloor n/2\right\rfloor$, yielding</p>
+							<p>\[T(\left\lfloor\frac{n}{2}\right\rfloor ) \leq c \left\lfloor\frac{n}{2}\right\rfloor
+								\lg(\left\lfloor\frac{n}{2}\right\rfloor) \]</p>
+							<p>Now we substitute</p>
+							<p>\[\begin{aligned}T(n)&=2T(\floor{n/2})+n\\
+								&\leq 2(c\floor{n/2}\lg(\floor{n/2}))+n\\
+								&\leq cn\lg(n/2)+n\\
+								&=cn\lg n-cn\lg 2+n\\
+								&=cn\lg n-cn+n\\
+								&\leq cn\lg n\end{aligned}\]</p>
+						</div>
+
+						<h4>Example 2</h4>
+						<div class="h4">
+							<p>Prove \[T(n)=T\left(\left\lfloor\frac{n}{2}\right\rfloor\right)+T\left(\left\lceil\frac{n}{2}\right\rceil\right)+1\] is
+								$O(n)$</p>
+							<p>Base Case: Assume $T(1)=1$</p>
+							<p>\[\begin{aligned}T(n)&\leq cn\\
+								T(1)&\leq 1c\\
+								1&\leq c\end{aligned}\]</p>
+							<p>The base case holds</p>
+							<p>Induction: Assume $T(m)\leq cm$ for all $m&lt;n$</p>
+							<p>let \[m=\frac{n}{2} \implies T\left(\frac{n}{2}\right)\leq c\left(\frac{n}{2}\right)\]</p>
+							<p>Then substitute (assume $n$ is divisible by 2)</p>
+							<p>\[\begin{aligned}T(n)&\leq c(n/2) + c(n/2) + 1\\
+								&=2c(n/2) + 1\\
+								&=cn + 1\\
+								T(n)&\leq cn+1\not\Rightarrow T(n)\leq cn\end{aligned}\]</p>
+							<p>We can deal with this by subtracting a consant from our assumption</p>
+							<p>Assume $T(m)\leq c_1m-c_2$ for all $m&lt;n$</p>
+							<p>let \[m=\frac{n}{2}\implies T\left(\frac{n}{2}\right)\leq c_1\left(\frac{n}{2}\right)-c_2\]</p>
+							<p>\[\begin{aligned}T(n)&\leq c_1(n/2)-c_2+c_1(n/2)-c_2+1\\
+								&=2c_1(n/2)-2c_2 + 1\\
+								&=c_1n-2c_2 + 1\\
+								&\leq c_1n-c_2,c_2\geq 1\\
+								\end{aligned}\]</p>
+							<p>Thus $T(n)$ is $O(n)$</p>
+						</div>
+
+
+						<h4>Example 3</h4>
+						<div class="h4">
+							<p>Prove \[T(n) = 2T(\lfloor\sqrt{n}\rfloor)+\lg n\]</p>
+							<p>m = lgn, n = 2^m</p>
+							<p>T(2^m) = 2T(floor 2^m/2) + m</p>
+							<p>Rename S(n) = T(2^m)</p>
+							<p>S(m) = 2S(floor m/2) + m</p>
+							<p>From example 1, complexity = O(nlgn)</p>
+							<p>Some other things that confuse me</p>
+							<p>T(n) = T(2^m) = S(m) = O(mlgm) = O(lgnlg(lgn))</p>
+						</div>
+
+						<p>Example 4</p>
+						<div class="h4">
+							<p>Prove T(n) = T(n-1) + n is O(n^2)</p>
+							<p>Hypothesis: is T(n) \leq cn^2</p>
+							<p>Base Case: Show T(n) \leq cn^2 for some constant c > 0and for all n >= n_0</p>
+							<p>Assume T(1) = 1</p>
+							<p>T(n) = cn^2</p>
+							<p>1 \leq c, so n_0 = 1 then n >= n_0</p>
+							<p>Inductive step</p>
+							<p>T(n) = T(n-1) + n \leq c(n-1)^2 + n</p>
+							<p>= cn^2 + (1-2c)n + 1 = cn^2 + n - 2cn + 1</p>
+							<p>\leq cn^2 + 2 - 2c</p>
+							<p>\leq cn^2 = O(n^2)</p>
+						</div>
+
+					</div>
+				</div>
+
+				<h2>Master Method</h2>
+				<div class="h2">
+					<p>Easiest way to solve recurrences of the form $T(n)$ is of the form $T(n)=aT(n/b)+f(n)$</p>
+					<ol>
+						<li>If $f(n)=O(n^{\log_ba-\epsilon})$ for some constant $\epsilon&gt;0$, Then $T(n)=\Theta(n^{\log_ba})$</li>
+						<li>If $f(n)=\Theta(n^{\log_ba})$, Then $T(n)=\Theta(n^{\log_ba}\lg n)$</li>
+						<li>If $f(n)=\Omega(n^{\log_ba+\epsilon})$ for some constant $\epsilon&gt;0$, and if $af(n/b)\leq cf(n)$ for some constant
+							$c&lt;1$ and all $n\geq n_0$, Then $T(n)=\Theta(f(n))$</li>
+					</ol>
+				</div>
+
+				<h2>Heaps</h2>
+				<div class="h2">
+					<div class="fcode code">
+						<p>Max-Heapify(A,i)</p>
+						<div>
+							<p>l = \textsc{Left}(i)</p>
+							<p>r = \textsc{Right}(i)</p>
+							<p>if l \leq heap-size[A] and A[l] > A[i]</p>
+							<div>
+								<p>largest = l</p>
+							</div>
+							<p>else largest = i</p>
+							<p>if r \leq heap-size[A] and A[r] > A[largest]</p>
+							<div>
+								<p>largest = r</p>
+							</div>
+							<p>if largest != i</p>
+							<div>
+								<p>exchange A[i] A[largest]</p>
+								<p>\textsc{Max-Heapify}(A,largest)</p>
+							</div>
+						</div>
+					</div>
+					<div class="fcode code">
+						<p>Build-Max-Heap(A)</p>
+						<div>
+							<p>heap-size[A] = length[A]</p>
+							<p>for i = \lfloor length[A]/2 \rfloor downto 1</p>
+							<div>
+								<p>\textsc{Max-Heapify}(A,i)</p>
+							</div>
+						</div>
+					</div>
+					<div class="code fcode">
+						<p>Heapsort(A)</p>
+						<div>
+							<p>\textsc{Build-Max-Heap}(A)</p>
+							<p>for i = length[A] downto 2</p>
+							<div>
+								<p>exchange A[1] \lrarrow A[i]</p>
+								<p>heap-size[A] = heap-size[A] - 1</p>
+								<p>\textsc{Max-Heapify}(A,1)</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<h2>Dynamic Programming</h2>
+				<div class="h2">
+					<p> Dynamic programming is a way of making recursive algorithms more efficient. In general, it uses some form of lookup table to
+						avoid computing the same sub problem multiple times. There are two approaches&mdash;bottom up and top down. Top down is
+						sometimes refered to as <i>memoized</i>.</p>
+
+					<h3>Rod Cutting</h3>
+					<div class="h3">
+						<h4>Formal Definition</h4>
+						<div class="h4">
+							<p>Input: An array $p[1\ldots n]$ of prices for rod lengths and an integer $n$ length of the given rod</p>
+							<p>Output: The maximum revenue possible for a rod of length $n$</p>
+						</div>
+
+						<h4>Recursive Solution</h4>
+						<div class="h4">
+							<p>First lets look at how awful the recursive solution is</p>
+							<div class="fcode">
+								<p>Cut-Rod(p,n)</p>
+								<div>
+									<p>if n == 0</p>
+									<div>
+										<p>return 0</p>
+									</div>
+									<p>q = -\infty</p>
+									<p>for i = 1 to n</p>
+									<div>
+										<p>q = \textsc{Max}(q, p[i] + \textsc{Cut-Rod}(p, n - i))</p>
+									</div>
+									<p>return q</p>
+								</div>
+							</div>
+							<p>The problem with this is we make a lot of the same call multiple times</p>
+							<p>We end up with the runtime</p>
+							<div class="indent">
+								<p>\[T(0)=1\]</p>
+								<p>\[T(n)=1+\sum_{j=0}^{n-1}T(j)\]</p>
+								<p>\[T(n)=2^n\]</p>
+							</div>
+							<p>We can do a lot better with <u>Dynamic Programming</u></p>
+						</div>
+
+						<h4>Dynamic Solution</h4>
+						<div class="h4">
+							<p>Top down approach</p>
+							<div class="fcode">
+								<p>Memoized-Cut-Rod(p,n)</p>
+								<div>
+									<p>let r[0\ldots n] be a new array</p>
+									<p>for i = 0 to n</p>
+									<div>
+										<p>r[i] = -\infty</p>
+									</div>
+									<p>return \textsc{Memoized-Cut-Rod-Aux}(</p>
+								</div>
+							</div>
+
+							<p>Bottom up approach</p>
+							<div class="fcode">
+								<p>Bottom-Up-Cut-Rod(p,n)</p>
+								<div>
+									<p>let r[0\ldots n] be a new array</p>
+									<p>r[0] = 0</p>
+									<p>for j = 1 to n</p>
+									<div>
+										<p>q = -\infty</p>
+										<p>for i = 1 to j</p>
+										<div>
+											<p>q = \textsc{Max}(q, p[i] + r[j - i])</p>
+										</div>
+										<p>r[j] = </p>
+									</div>
+								</div>
+							</div>
+
+							<p>The code above only gives us the theroretical maximum revenue. We want to know where to cut.</p>
+							<div class="fcode">
+								<p>Extended-Bottom-Up-Cut-Rod(p,n)</p>
+								<div>
+									<p>let r[0\ldots n] and s[0\ldots n] be new arrays</p>
+									<p>r[0] = 0</p>
+									<p>for j = 0 to n</p>
+									<div>
+										<p>q = -\infty</p>
+										<p>for i = 1 to j</p>
+										<div>
+											<p>if q &lt; p[i] + r[j - i]</p>
+											<div>
+												<p>q = p[i] + r[j - i]</p>
+												<p>s[j] = i</p>
+											</div>
+										</div>
+										<p>r[j] = q</p>
+									</div>
+									<p>return (r,s)</p>
+								</div>
+							</div>
+
+							<div class="fcode">
+								<p>Print-Cut-Rod-Solution(p,n)</p>
+								<div>
+									<p>(r,s) = \textsc{Extended-Bottom-Up-Cut-Rod}(p,n)</p>
+									<p>while n &gt; 0</p>
+									<div>
+										<p>\textsc{Print}(s[n])</p>
+										<p>n = n - s[n]</p>
+									</div>
+								</div>
+							</div>
+
+						</div>
+
+					</div>
+
+					<h3>Matrix-Chain Multiplication</h3>
+					<div class="h3">
+						<p> Matrix multiplication is associative, that is the parenthesisation, or the the order of multiplications, dosent matter for
+							the
+							answer to be correct. The order does however affect the number of scalar multiplications required and therefore the time
+							cost of
+							the operation.
+						</p>
+						<p> Recall that in matrix multiplication the inner dimensions of the matrices must be equal and the outer dimensions are the
+							dimensions of the resulting matrix. For example, $A_{p\times r}\times B_{r\times q} = C_{p\times q}$. The cost of the
+							operation is
+							$p\cdot r\cdot q$.
+						</p>
+
+						<h4>Dynamic Solution</h4>
+						<div class="h4">
+							<p>Bottom up approach</p>
+							<div class="fcode">
+								<p>Matrix-Chain-Order(p)</p>
+								<div>
+									<p>n = p.length - 1</p>
+									<p>let m[1\ldots n, 1\ldots n] and s[1\ldots n - 1, 2\ldots n] be new tables</p>
+									<p>for i = 1 to n</p>
+									<div>
+										<p>m[i, i] = 0</p>
+									</div>
+									<p>for l = 2 to n // l is the chain length</p>
+									<div>
+										<p>for i = 1 to n - l + 1</p>
+										<div>
+											<p>j = i + l - 1</p>
+											<p>m[i, j] = \infty</p>
+											<p>for k = i to j - 1</p>
+											<div>
+												<p>q = m[i, k] + m[k + 1, j] + p_{i - 1} p_k p_j</p>
+												<p>if q &lt; m[i, j]</p>
+												<div>
+													<p>m[i, j] = q</p>
+													<p>s[i, j] = k</p>
+												</div>
+											</div>
+										</div>
+									</div>
+									<p>return (m, s)</p>
+								</div>
+							</div>
+						</div>
+
+					</div>
+
+					<h3></h3>
+				</div>
+
+				<h2>Knapsack Problem</h2>
+				<div class="h2">
+					<p> A thief robbing a store finds $n$ items. Each item $i$ has a value $v_i$ dollars and weights $w_i$ pounds, where $v_i$ and
+						$w_i$ are integers. The thief wants to take as valuable a load as possible, but he can carry at most $W$ pounds in his
+						knapsack, for some integer $W$. So, he must figure out what items he should take.
+					</p>
+					<p>There are two versions of this problem</p>
+					<ul>
+						<li>0-1 Knapsack problem</li>
+						<ul>
+							<li>For each item, it can either be stolen or not</li>
+						</ul>
+						<li>Fractional Knapsack problem</li>
+						<ul>
+							<li>Each item can be broken up into pieces</li>
+						</ul>
+					</ul>
+
+					<h3>Greedy vs. Dynamic</h3>
+					<div class="h3">
+						<p>The 0-1 Knapsack cannot be solved with a greedy approach. The fractional version can be.</p>
+						<h4>Fractional Greedy Algorithm</h4>
+						<div class="h4">
+							<p> From the items left, we take the one with the highest value per pound, $v_i/w_i$ If we reach a point where taking the
+								next highest item would exceeded the weight limit, we only take enough of that
+								item to fill the weight capacity.
+							</p>
+						</div>
+						<h4>0-1 Dynamic Algorithm</h4>
+						<div class="h4">
+							<p>This should be the same as </p>
+						</div>
+					</div>
+				</div>
+
+				<h2>Huffman Encoding</h2>
+				<div class="h2">
+					<p>Basically just morse code but with extra steps</p>
+					<h4>Example</h4>
+					<div class="h4">
+						<p>Huffman encode the following text</p>
+						<p>lorem ipsum dolor sit amet. neque porro quisquam est qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.
+						</p>
+
+						<p>Step 1, make a freqency table</p>
+						<table>
+							<tr>
+								<th>Character</th>
+								<th>Occurances</th>
+							</tr>
+							<tr>
+								<td>⎵</td>
+								<td>18</td>
+							</tr>
+							<tr>
+								<td>i</td>
+								<td>11</td>
+							</tr>
+							<tr>
+								<td>o</td>
+								<td>10</td>
+							</tr>
+							<tr>
+								<td>e</td>
+								<td>10</td>
+							</tr>
+							<tr>
+								<td>s</td>
+								<td>8</td>
+							</tr>
+							<tr>
+								<td>u</td>
+								<td>8</td>
+							</tr>
+							<tr>
+								<td>t</td>
+								<td>8</td>
+							</tr>
+							<tr>
+								<td>r</td>
+								<td>7</td>
+							</tr>
+							<tr>
+								<td>m</td>
+								<td>7</td>
+							</tr>
+							<tr>
+								<td>l</td>
+								<td>5</td>
+							</tr>
+							<tr>
+								<td>a</td>
+								<td>5</td>
+							</tr>
+							<tr>
+								<td>q</td>
+								<td>5</td>
+							</tr>
+							<tr>
+								<td>p</td>
+								<td>4</td>
+							</tr>
+							<tr>
+								<td>d</td>
+								<td>4</td>
+							</tr>
+							<tr>
+								<td>c</td>
+								<td>3</td>
+							</tr>
+							<tr>
+								<td>.</td>
+								<td>2</td>
+							</tr>
+							<tr>
+								<td>n</td>
+								<td>2</td>
+							</tr>
+							<tr>
+								<td>,</td>
+								<td>2</td>
+							</tr>
+							<tr>
+								<td>v</td>
+								<td>1</td>
+							</tr>
+						</table>
+
+
+						<p>We use this table to make a min-queue of nodes</p>
+						<table>
+							<tr>
+								<th>Node</th>
+								<th>Character</th>
+								<th>Occurances</th>
+								<th>Left</th>
+								<th>Right</th>
+							</tr>
+							<tr>
+								<td>1</td>
+								<td>v</td>
+								<td>1</td>
+							</tr>
+							<tr>
+								<td>2</td>
+								<td>.</td>
+								<td>2</td>
+							</tr>
+							<tr>
+								<td>3</td>
+								<td>n</td>
+								<td>2</td>
+							</tr>
+							<tr>
+								<td>4</td>
+								<td>,</td>
+								<td>2</td>
+							</tr>
+							<tr>
+								<td>5</td>
+								<td>c</td>
+								<td>3</td>
+							</tr>
+							<tr>
+								<td>6</td>
+								<td>p</td>
+								<td>4</td>
+							</tr>
+							<tr>
+								<td>7</td>
+								<td>d</td>
+								<td>4</td>
+							</tr>
+							<tr>
+								<td>8</td>
+								<td>l</td>
+								<td>5</td>
+							</tr>
+							<tr>
+								<td>9</td>
+								<td>a</td>
+								<td>5</td>
+							</tr>
+							<tr>
+								<td>10</td>
+								<td>q</td>
+								<td>5</td>
+							</tr>
+							<tr>
+								<td>11</td>
+								<td>r</td>
+								<td>7</td>
+							</tr>
+							<tr>
+								<td>12</td>
+								<td>m</td>
+								<td>7</td>
+							</tr>
+							<tr>
+								<td>13</td>
+								<td>s</td>
+								<td>8</td>
+							</tr>
+							<tr>
+								<td>14</td>
+								<td>u</td>
+								<td>8</td>
+							</tr>
+							<tr>
+								<td>15</td>
+								<td>t</td>
+								<td>8</td>
+							</tr>
+							<tr>
+								<td>16</td>
+								<td>o</td>
+								<td>10</td>
+							</tr>
+							<tr>
+								<td>17</td>
+								<td>e</td>
+								<td>10</td>
+							</tr>
+							<tr>
+								<td>18</td>
+								<td>i</td>
+								<td>11</td>
+							</tr>
+							<tr>
+								<td>19</td>
+								<td>⎵</td>
+								<td>18</td>
+							</tr>
+						</table>
+						<p> The alogrithm then iteratively pops two nodes from the queue, x and y, and pushes a new node z with x and y as its
+							left and right children and frequency equal to their sum.
+						</p>
+
+						<div class="column-wrapper">
+							<div class="column">
+								<table>
+									<tr>
+										<th>Node</th>
+										<th>Character</th>
+										<th>Occurances</th>
+										<th>Left</th>
+										<th>Right</th>
+									</tr>
+									<tr>
+										<td>3</td>
+										<td>n</td>
+										<td>2</td>
+									</tr>
+									<tr>
+										<td>4</td>
+										<td>,</td>
+										<td>2</td>
+									</tr>
+									<tr>
+										<td>20</td>
+										<td></td>
+										<td>3</td>
+										<td>1</td>
+										<td>2</td>
+									</tr>
+									<tr>
+										<td>5</td>
+										<td>c</td>
+										<td>3</td>
+									</tr>
+									<tr>
+										<td>6</td>
+										<td>p</td>
+										<td>4</td>
+									</tr>
+									<tr>
+										<td>7</td>
+										<td>d</td>
+										<td>4</td>
+									</tr>
+									<tr>
+										<td>8</td>
+										<td>l</td>
+										<td>5</td>
+									</tr>
+									<tr>
+										<td>9</td>
+										<td>a</td>
+										<td>5</td>
+									</tr>
+									<tr>
+										<td>10</td>
+										<td>q</td>
+										<td>5</td>
+									</tr>
+									<tr>
+										<td>11</td>
+										<td>r</td>
+										<td>7</td>
+									</tr>
+									<tr>
+										<td>12</td>
+										<td>m</td>
+										<td>7</td>
+									</tr>
+									<tr>
+										<td>13</td>
+										<td>s</td>
+										<td>8</td>
+									</tr>
+									<tr>
+										<td>14</td>
+										<td>u</td>
+										<td>8</td>
+									</tr>
+									<tr>
+										<td>15</td>
+										<td>t</td>
+										<td>8</td>
+									</tr>
+									<tr>
+										<td>16</td>
+										<td>o</td>
+										<td>10</td>
+									</tr>
+									<tr>
+										<td>17</td>
+										<td>e</td>
+										<td>10</td>
+									</tr>
+									<tr>
+										<td>18</td>
+										<td>i</td>
+										<td>11</td>
+									</tr>
+									<tr>
+										<td>19</td>
+										<td>⎵</td>
+										<td>18</td>
+									</tr>
+								</table>
+							</div>
+							<div class="column">
+								<div class="tree">
+									<ul>
+										<li>
+											<p>20</p>
+											<ul>
+												<li>
+													<p>1: v</p>
+												</li>
+												<li>
+													<p>2: .</p>
+												</li>
+											</ul>
+										</li>
+									</ul>
+								</div>
+							</div>
+						</div>
+
+						<div class="column-wrapper">
+							<div class="column">
+								<table>
+									<tr>
+										<th>Node</th>
+										<th>Character</th>
+										<th>Occurances</th>
+										<th>Left</th>
+										<th>Right</th>
+									</tr>
+									<tr>
+										<td>20</td>
+										<td></td>
+										<td>3</td>
+										<td>1</td>
+										<td>2</td>
+									</tr>
+									<tr>
+										<td>5</td>
+										<td>c</td>
+										<td>3</td>
+									</tr>
+									<tr>
+										<td>21</td>
+										<td></td>
+										<td>4</td>
+										<td>3</td>
+										<td>4</td>
+									</tr>
+									<tr>
+										<td>6</td>
+										<td>p</td>
+										<td>4</td>
+									</tr>
+									<tr>
+										<td>7</td>
+										<td>d</td>
+										<td>4</td>
+									</tr>
+									<tr>
+										<td>8</td>
+										<td>l</td>
+										<td>5</td>
+									</tr>
+									<tr>
+										<td>9</td>
+										<td>a</td>
+										<td>5</td>
+									</tr>
+									<tr>
+										<td>10</td>
+										<td>q</td>
+										<td>5</td>
+									</tr>
+									<tr>
+										<td>11</td>
+										<td>r</td>
+										<td>7</td>
+									</tr>
+									<tr>
+										<td>12</td>
+										<td>m</td>
+										<td>7</td>
+									</tr>
+									<tr>
+										<td>13</td>
+										<td>s</td>
+										<td>8</td>
+									</tr>
+									<tr>
+										<td>14</td>
+										<td>u</td>
+										<td>8</td>
+									</tr>
+									<tr>
+										<td>15</td>
+										<td>t</td>
+										<td>8</td>
+									</tr>
+									<tr>
+										<td>16</td>
+										<td>o</td>
+										<td>10</td>
+									</tr>
+									<tr>
+										<td>17</td>
+										<td>e</td>
+										<td>10</td>
+									</tr>
+									<tr>
+										<td>18</td>
+										<td>i</td>
+										<td>11</td>
+									</tr>
+									<tr>
+										<td>19</td>
+										<td>⎵</td>
+										<td>18</td>
+									</tr>
+								</table>
+							</div>
+							<div class="column">
+								<div class="tree">
+									<ul>
+										<li>
+											<p>20</p>
+											<ul>
+												<li>
+													<p>1: v</p>
+												</li>
+												<li>
+													<p>2: .</p>
+												</li>
+											</ul>
+										</li>
+									</ul>
+								</div>
+								<div class="tree">
+									<ul>
+										<li>
+											<p>21</p>
+											<ul>
+												<li>
+													<p>3: n</p>
+												</li>
+												<li>
+													<p>4: ,</p>
+												</li>
+											</ul>
+										</li>
+									</ul>
+								</div>
+							</div>
+						</div>
+
+						<div class="column-wrapper">
+							<div class="column">
+								<table>
+									<tr>
+										<th>Node</th>
+										<th>Character</th>
+										<th>Occurances</th>
+										<th>Left</th>
+										<th>Right</th>
+									</tr>
+									<tr>
+										<td>21</td>
+										<td></td>
+										<td>4</td>
+										<td>3</td>
+										<td>4</td>
+									</tr>
+									<tr>
+										<td>6</td>
+										<td>p</td>
+										<td>4</td>
+									</tr>
+									<tr>
+										<td>7</td>
+										<td>d</td>
+										<td>4</td>
+									</tr>
+									<tr>
+										<td>8</td>
+										<td>l</td>
+										<td>5</td>
+									</tr>
+									<tr>
+										<td>9</td>
+										<td>a</td>
+										<td>5</td>
+									</tr>
+									<tr>
+										<td>10</td>
+										<td>q</td>
+										<td>5</td>
+									</tr>
+									<tr>
+										<td>22</td>
+										<td></td>
+										<td>6</td>
+										<td>20</td>
+										<td>5</td>
+									</tr>
+									<tr>
+										<td>11</td>
+										<td>r</td>
+										<td>7</td>
+									</tr>
+									<tr>
+										<td>12</td>
+										<td>m</td>
+										<td>7</td>
+									</tr>
+									<tr>
+										<td>13</td>
+										<td>s</td>
+										<td>8</td>
+									</tr>
+									<tr>
+										<td>14</td>
+										<td>u</td>
+										<td>8</td>
+									</tr>
+									<tr>
+										<td>15</td>
+										<td>t</td>
+										<td>8</td>
+									</tr>
+									<tr>
+										<td>16</td>
+										<td>o</td>
+										<td>10</td>
+									</tr>
+									<tr>
+										<td>17</td>
+										<td>e</td>
+										<td>10</td>
+									</tr>
+									<tr>
+										<td>18</td>
+										<td>i</td>
+										<td>11</td>
+									</tr>
+									<tr>
+										<td>19</td>
+										<td>⎵</td>
+										<td>18</td>
+									</tr>
+								</table>
+							</div>
+							<div class="column">
+								<div class="tree">
+									<ul>
+										<li>
+											<p>22</p>
+											<ul>
+												<li>
+													<p>20</p>
+													<ul>
+														<li>
+															<p>1: v</p>
+														</li>
+														<li>
+															<p>2: .</p>
+														</li>
+													</ul>
+												</li>
+												<li>
+													<p>5: c</p>
+												</li>
+											</ul>
+										</li>
+									</ul>
+								</div>
+								<div class="tree">
+									<ul>
+										<li>
+											<p>21</p>
+											<ul>
+												<li>
+													<p>3: n</p>
+												</li>
+												<li>
+													<p>4: ,</p>
+												</li>
+											</ul>
+										</li>
+									</ul>
+								</div>
+							</div>
+						</div>
+
+						<div class="column-wrapper">
+							<div class="column">
+								<table>
+									<tr>
+										<th>Node</th>
+										<th>Character</th>
+										<th>Occurances</th>
+										<th>Left</th>
+										<th>Right</th>
+									</tr>
+									<tr>
+										<td>7</td>
+										<td>d</td>
+										<td>4</td>
+									</tr>
+									<tr>
+										<td>8</td>
+										<td>l</td>
+										<td>5</td>
+									</tr>
+									<tr>
+										<td>9</td>
+										<td>a</td>
+										<td>5</td>
+									</tr>
+									<tr>
+										<td>10</td>
+										<td>q</td>
+										<td>5</td>
+									</tr>
+									<tr>
+										<td>22</td>
+										<td></td>
+										<td>6</td>
+										<td>20</td>
+										<td>5</td>
+									</tr>
+									<tr>
+										<td>11</td>
+										<td>r</td>
+										<td>7</td>
+									</tr>
+									<tr>
+										<td>12</td>
+										<td>m</td>
+										<td>7</td>
+									</tr>
+									<tr>
+										<td>23</td>
+										<td></td>
+										<td>8</td>
+										<td>21</td>
+										<td>6</td>
+									</tr>
+									<tr>
+										<td>13</td>
+										<td>s</td>
+										<td>8</td>
+									</tr>
+									<tr>
+										<td>14</td>
+										<td>u</td>
+										<td>8</td>
+									</tr>
+									<tr>
+										<td>15</td>
+										<td>t</td>
+										<td>8</td>
+									</tr>
+									<tr>
+										<td>16</td>
+										<td>o</td>
+										<td>10</td>
+									</tr>
+									<tr>
+										<td>17</td>
+										<td>e</td>
+										<td>10</td>
+									</tr>
+									<tr>
+										<td>18</td>
+										<td>i</td>
+										<td>11</td>
+									</tr>
+									<tr>
+										<td>19</td>
+										<td>⎵</td>
+										<td>18</td>
+									</tr>
+								</table>
+							</div>
+							<div class="column">
+								<div class="tree">
+									<ul>
+										<li>
+											<p>22</p>
+											<ul>
+												<li>
+													<p>20</p>
+													<ul>
+														<li>
+															<p>1: v</p>
+														</li>
+														<li>
+															<p>2: .</p>
+														</li>
+													</ul>
+												</li>
+												<li>
+													<p>5: c</p>
+												</li>
+											</ul>
+										</li>
+									</ul>
+								</div>
+								<div class="tree">
+									<ul>
+										<li>
+											<p>23</p>
+											<ul>
+												<li>
+													<p>21</p>
+													<ul>
+														<li>
+															<p>3: n</p>
+														</li>
+														<li>
+															<p>4: ,</p>
+														</li>
+													</ul>
+												</li>
+												<li>
+													<p>6: p</p>
+												</li>
+											</ul>
+										</li>
+									</ul>
+								</div>
+							</div>
+						</div>
+
+						<hr>
+
+						<div class="tree">
+							
+						</div>
+
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="side-col">
+	</div>
+</body>
