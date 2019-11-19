@@ -1,12 +1,76 @@
 <!DOCTYPE html>
+<html lang="en">
 
 <head>
-	<link href="./main.css" rel="stylesheet">
+	<title>CS 2500 Notes</title>
+	<meta charset="utf-8">
+
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-	<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-	<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+	<!-- Katex -->
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css"
+		integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous">
+	<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js"
+		integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous"></script>
+	<script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js"
+		integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"></script>
+	<script>
+		var macros = {
+			"\\textsc": "\\mathtt", // hack for now until Katex adds textsc support
+
+			"\\floor": "\\left\\lfloor #1 \\right\\rfloor",
+			"\\ceil": "\\left\\lceil #1 \\right\\rceil",
+
+			"\\PROCEDURE": "\\textsc{#1}(#2)",
+			"\\ENDPROCEDURE": "",
+
+			"\\CALL": "\\textsc{#1}(#2)",
+
+			"\\IF": "\\textbf{if }#1",
+			"\\ELSEIF": "\\textbf{else if }#1",
+			"\\ELSE": "\\textbf{else }",
+			"\\ENDIF": "",
+
+			"\\FOR": "\\textbf{for }#1",
+			"\\ENDFOR": "",
+			"\\TO": "\\textbf{ to }",
+			"\\DOWNTO": "\\textbf{ downto }",
+
+			"\\FOREACH": "\\textbf{for }\\textrm{each }#1\\in #2",
+			"\\ENDFOREACH": "",
+
+			"\\WHILE": "\\textbf{while }#1",
+			"\\ENDWHILE": "",
+
+			"\\AND": "\\textbf{ and }",
+			"\\OR": "\\textbf{ or }",
+
+			"\\LET": "#1 = #2",
+			"\\TYPE": "\\textrm{#1 }",
+			"\\CONST": "\\textsc{#1}",
+			"\\NIL": "\\textsc{nil}",
+			"\\EXCHANGE": "\\textrm{exchange }#1\\textrm{ with }#2",
+			"\\ARRAY": "\\textrm{let }#1[#2\\ldots #3]\\textrm{ be a new array}",
+			"\\ARRAYS": "\\textrm{let }#1[#2\\ldots #3]\\textrm{ and }#4[#5\\ldots #6]\\textrm{ be new arrays}",
+
+			"\\RETURN": "\\textbf{return }#1",
+
+			"\\COMMENT": "\\textrm{\/\/ #1}",
+
+		};
+
+		document.addEventListener("DOMContentLoaded", function () {
+			renderMathInElement(document.body, {
+				macros: macros
+			})
+		});
+
+	</script>
+
+	<link href="./main.css" rel="stylesheet">
+
+	<!-- Table of contents -->
 	<script type="text/javascript">
-		// Table of Contents Generator
 		var index = 0
 		const gen_table = (element) => {
 			let ret = '<p><a href="#' + index + '">' + $(element).html() + '</a></p>'
@@ -18,6 +82,57 @@
 		}
 		$(() => { $('#table-content').append(gen_table('#main-header')) })
 	</script>
+
+	<!-- Pseudocode -->
+	<script>
+		$(() => {
+			$("div.fmcode").html((i, content) => {
+				const words = ['PROCEDURE', 'IF', 'FOR', 'FOREACH', 'WHILE']
+				let nest = []
+				let lines = content.split('\n').map(val => val.trim())
+				for (let i = 0; i < lines.length; i++) {
+					let add = 0
+					let end = false
+					if (lines[i].length === 0 || lines[i].startsWith('%')) {
+						delete lines[i]
+						continue
+					}
+					let rendered = katex.renderToString(lines[i], { macros: macros });
+					for (let w = 0; w < words.length; w++) {
+						if (lines[i].startsWith(`\\${words[w]}`)) {
+							nest.push(words[w])
+							add = -1
+							end = true
+							if (nest.length === 1) {
+								lines[i] = `<p style="padding-left:0em;">${rendered}</p>`
+								lines.splice(++i, 0, "<ol>")
+							} else {
+								lines[i] = `<li style="padding-left:${nest.length + add}em;">${rendered}</li>`
+							}
+							break
+						}
+						if (lines[i].startsWith(`\\END${words[w]}`)) {
+							if (nest.pop() !== words[w])
+								throw "mismatched delimiters"
+							end = true
+							delete lines[i]
+							if (nest.length === 0)
+								lines.splice(++i, 0, "</ol>")
+							break
+						}
+					}
+					if (!end) {
+						if (lines[i].startsWith('\\ELSE')) {
+							add--
+						}
+						lines[i] = `<li style="padding-left:${nest.length + add}em;">${rendered}</li>`
+					}
+				}
+				return lines.join('\n')
+			})
+		})
+	</script>
+
 </head>
 
 <body>
@@ -26,8 +141,10 @@
 	</div>
 
 	<div class="main">
+
 		<h1 id="main-header">CS 2500 Algorithms</h1>
 		<div>
+
 			<h2>Introduction</h2>
 			<div>
 				<h3>What is an Algorithm</h3>
@@ -162,37 +279,29 @@
 
 						<h4>MERGE PseudoCode</h4>
 						<div>
-							<div class="fcode">
-								<p>Merge(A,p,q,r)</p>
-								<div>
-									<p>n_1 = q - p + 1</p>
-									<p>n_2 = r - q</p>
-									<p>let L[1\ldots n_1 + 1] and R[1\ldots n_2 + 1] be new arrays</p>
-									<p>for i = 1 to n_1</p>
-									<div>
-										<p>L[i] = A[p + i - 1]</p>
-									</div>
-									<p>for j = 1 to n_2</p>
-									<div>
-										<p>R[j] = A[q + j]</p>
-									</div>
-									<p>L[n_1 + 1] = \infty</p>
-									<p>R[n_2 + 1] = \infty</p>
-									<p>i=1</p>
-									<p>j=1</p>
-									<p>for k = p to r</p>
-									<div>
-										<p>if L[i] \leq R[j]$</p>
-										<div>
-											<p>A[k] = L[i]</p>
-											<p>i = i + 1</p>
-										</div>
-										<p>else A[k] = R[j]</p>
-										<div>
-											<p>j = j + 1</p>
-										</div>
-									</div>
-								</div>
+							<div class="fmcode">
+								\PROCEDURE{Merge}{A,p,q,r}
+								\LET{n_1}{q - p + 1}
+								\LET{n_2}{r - q}
+								\ARRAYS{L}{1}{n_1+1}{R}{1}{n_2+1}
+								\FOR{\LET{i}{1}\TO n_1}
+								\LET{L[i]}{A[p + i - 1]}
+								\ENDFOR
+								\FOR{\LET{j}{1}\TO n_2}
+								\LET{R[j]}{A[q + j]}
+								\ENDFOR
+								\LET{L[n_1 + 1]}{\infty}
+								\LET{R[n_2 + 1]}{\infty}
+								\LET{i}{1}
+								\LET{j}{1}
+								\FOR{\LET{k}{p}\TO r}
+								\IF{L[i] \leq R[j]}
+								\LET{A[k]}{L[i]}
+								\LET{i}{i + 1}
+								\ELSE \LET{A[k]}{R[j]}
+								\LET{j}{j + 1}
+								\ENDIF
+								\ENDFOR
 							</div>
 
 							<h4>Formal Proof</h4>
@@ -247,67 +356,30 @@
 						</div>
 						<h4>Analysis</h4>
 						<div>
-							<p>To find the runtime of the \(\textsc{Merge}\) routine, we first associate a cost, \(c_i\), with each line \(i\)</p>
+							<p>To find the runtime of the \(\textsc{MERGE}\) routine, we first associate a cost, \(c_i\), with each line \(i\)</p>
 							<p>We then count how many times each line is called and multiplly it by its cost</p>
 							<p>The sum of each of these terms is the total cost of the routine</p>
 							<p>How many times is each line called?</p>
-							<div class=column-wrapper>
-								<div class=column>
-									<div class="code">
-										<p>MERGE \((A,p,q,r)\)</p>
-										<div>
-											<p>\(n_1=q-p+1\)</p>
-											<p>\(n_2=r-q\)</p>
-											<p>let \(L[1\ldots n_1+1]\) and \(R[1\ldots n_2+1]\) be new arrays</p>
-											<p>for \(i=1\) to \(n_1\)</p>
-											<div>
-												<p>\(L[i]=A[p+i-1]\)</p>
-											</div>
-											<p>for \(j=1\) to \(n_2\)</p>
-											<div>
-												<p>\(R[j]=A[q+j]\)</p>
-											</div>
-											<p>\(L[n_1+1]=\infty\)</p>
-											<p>\(R[n_2+1]=\infty\)</p>
-											<p>\(i=1\)</p>
-											<p>\(j=1\)</p>
-											<p>for \(k=p\) to \(r\)</p>
-											<div>
-												<p>if \(L[i]\leq R[j]\)</p>
-												<div>
-													<p>\(A[k]=L[i]\)</p>
-													<p>\(i=i+1\)</p>
-												</div>
-												<p>else \(A[k]=R[j]\)</p>
-												<div>
-													<p>\(j=j+1\)</p>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-								<div class=column>
-									<li>1</li>
-									<li>1</li>
-									<li>1</li>
-									<li>n_1+1</li>
-									<li>n_1</li>
-									<li>n_2+1</li>
-									<li>n_2</li>
-									<li>1</li>
-									<li>1</li>
-									<li>1</li>
-									<li>1</li>
-									<li>n</li>
-									<li>n-1</li>
-									<li>n_1</li>
-									<li>n_1</li>
-									<li>n_2</li>
-									<li>n_2</li>
-								</div>
-							</div>
+							<ol>
+								<li>\(1\)</li>
+								<li>\(1\)</li>
+								<li>\(1\)</li>
+								<li>\(n_1+1\)</li>
+								<li>\(n_1\)</li>
+								<li>\(n_2+1\)</li>
+								<li>\(n_2\)</li>
+								<li>\(1\)</li>
+								<li>\(1\)</li>
+								<li>\(1\)</li>
+								<li>\(1\)</li>
+								<li>\(n\)</li>
+								<li>\(n-1\)</li>
+								<li>\(n_1\)</li>
+								<li>\(n_1\)</li>
+								<li>\(n_2\)</li>
+								<li>\(n_2\)</li>
+							</ol>
 						</div>
-
 
 						<p>This gives the total runtime of</p>
 						<p>\[T(n)=c_1+c_2+c_3+(n_1+1)c_4+n_1c_5+(n_2+1)c_6+\ldots+n_2c_{16}+n_2c_{17}\]</p>
@@ -316,17 +388,15 @@
 
 					<h4>MERGE SORT PseudoCode</h4>
 					<div>
-						<div class="code">
-							<p>\(\textsc{Merge-Sort}(A,p,r)\)</p>
-							<div>
-								<p>\(\textup{if }p&lt;r\)</p>
-								<div>
-									<p>\(q=\left\lfloor\frac{p+r}{2}\right\rfloor\)</p>
-									<p>\(\textsc{Merge-Sort}(A,p,q)\)</p>
-									<p>\(\textsc{Merge-Sort}(A,q+1,r)\)</p>
-									<p>\(\textsc{Merge}(A,p,q,r)\)</p>
-								</div>
-							</div>
+						<div class="fmcode">
+							\PROCEDURE{MergeSort}{A,p,r}
+							\IF{p\lt r}
+							\LET{q}{\floor{\frac{p+r}{2}}}
+							\CALL{MergeSort}{A,p,q}
+							\CALL{MergeSort}{A,q+1,r}
+							\CALL{Merge}{A,p,q,r}
+							\ENDIF
+							\ENDPROCEDURE
 						</div>
 
 						<h4>Analysis</h4>
@@ -337,10 +407,10 @@
 							<p>Divide: (line 2) \(D(n)=\Theta(1),n>1\)</p>
 							<p>Conquer: \(2T(\frac{n}{2})\)</p>
 							<p>Combine: \(\Theta(n)\)</p>
-							<p>\(T(n)=\begin{cases}2T(\frac{n}{2})+\Theta(1)+\Theta(n)&,n>1\\\Theta(1)&,n=1\end{cases}\)</p>
+							<p>\[T(n)=\begin{cases}2T(\frac{n}{2})+\Theta(1)+\Theta(n)&,n>1\\\Theta(1)&,n=1\end{cases}\]</p>
 							<p>To find the worst case runtime, plug in constants:</p>
-							<p>\(T(n)=\begin{cases}2T(\frac{n}{2})+cn&,n>1\\c&,n=1\end{cases}\) where \(c\) is the worst case runtime of the base case
-							</p>
+							<p>\[T(n)=\begin{cases}2T(\frac{n}{2})+cn&,n>1\\c&,n=1\end{cases}\]</p>
+							<p>\(c\) is the worst case runtime of the base case</p>
 							<p>This gives us a recursive function which can be simplified using a <u>Recursion Tree</u></p>
 						</div>
 
@@ -557,18 +627,16 @@
 
 			<h2>More loop invariants</h2>
 			<div>
-				<div class="code">
-					<p>\(\textsc{SUM}(n)\)</p>
-					<div>
-						<p>\(\textrm{sum}\leftarrow 0\)</p>
-						<p>\(i\leftarrow 1\)</p>
-						<p>\(\textup{while }i\leq n\)</p>
-						<div>
-							<p>\(\textrm{sum}\leftarrow\textrm{sum}+1\)</p>
-							<p>\(i\leftarrow i+1\)</p>
-						</div>
-						<p>\(\textup{return }\textrm{sum}\)</p>
-					</div>
+				<div class="fmcode">
+					\PROCEDURE{Sum}{n}
+					\LET{sum}{0}
+					\LET{i}{1}
+					\WHILE{i\leq n}
+					\LET{sum}{sum + 1}
+					\LET{i}{i+1}
+					\ENDWHILE
+					\RETURN{sum}
+					\ENDPROCEDURE
 				</div>
 				<p>Input: A non-negative integer \(n\)</p>
 				<p>Output: \(S\) where \(S=\sum_{k=1}^nk\)</p>
@@ -608,62 +676,48 @@
 				<p>When it crosses the middle, you would start by working your way left j = mid</p>
 				<p>Another mid case, you start working right and i = mid+1. </p>
 
-				<div class="fcode">
-					<p>Find-Max-Crossing-Subarray(A,low,mid,high)</p>
-					<div>
-						<p>left-sum = -\infty</p>
-						<p>sum = 0</p>
-						<p>for i = mid downto low</p>
-						<div>
-							<p>sum = sum + A[i]</p>
-							<p>if sum &gt; left-sum</p>
-							<div>
-								<p>left-sum = sum</p>
-								<p>max-left = i</p>
-							</div>
-						</div>
-						<p>right-sum = -\infty</p>
-						<p>sum = 0</p>
-						<p>for j = mid + 1 to high</p>
-						<div>
-							<p>sum = sum + A[j]</p>
-							<p>if sum &gt; right-sum</p>
-							<div>
-								<p>right-sum = sum</p>
-								<p>max-right = j</p>
-							</div>
-						</div>
-						<p>return (max-left,max-right,left-sum+right-sum)</p>
-					</div>
+				<div class="fmcode">
+					\PROCEDURE{FindMaxCrossingSubarray}{A,low,mid,high}
+					\LET{left-sum}{-\infty}
+					\LET{sum}{0}
+					\FOR{\LET{i}{mid}\DOWNTO low}
+					\LET{sum}{sum + A[i]}
+					\IF{sum\gt left-sum}
+					\LET{left-sum}{sum}
+					\LET{max-left}{i}
+					\ENDIF
+					\ENDFOR
+					\LET{right-sum}{-\infty}
+					\LET{sum}{0}
+					\FOR{\LET{j}{mid + 1}\TO high}
+					\LET{sum}{sum + A[j]}
+					\IF{sum\gt right-sum}
+					\LET{right-sum}{sum}
+					\LET{max-right}{j}
+					\ENDIF
+					\ENDFOR
+					\RETURN{(max-left,max-right,left-sum+right-sum)}
+					\ENDPROCEDURE
 				</div>
 
-				<div class="fcode">
-					<p>Find-Maximum-Subarray(A,low,high)</p>
-					<div>
-						<p>if high == low</p>
-						<div>
-							<p>return (low,high,A[low]) // base case: only one element</p>
-						</div>
-						<p>else</p>
-						<div>
-							<p>mid = \lfloor (low + high)/2 \rfloor</p>
-							<p>(left-low,left-high,left-sum) = \textsc{Find-Maximum-Subarray}(A,low,mid)</p>
-							<p>(right-low,right-high,right-sum) = \textsc{Find-Maximum-Subarray}(A,mid+1,high)</p>
-							<p>(cross-low,cross-high,cross-sum) = \textsc{Find-Max-Crossing-Subarray}(A,low,mid,high)</p>
-							<p>if left-sum \geq right-sum and left-sum \geq cross-sum</p>
-							<div>
-								<p>return (left-low,left-high,left-sum)</p>
-							</div>
-							<p>else if right-sum \geq left-sum and right-sum \geq cross-sum</p>
-							<div>
-								<p>return (right-low,right-high,right-sum)</p>
-							</div>
-							<p>else</p>
-							<div>
-								<p>return (cross-low,cross-high,cross-sum)</p>
-							</div>
-						</div>
-					</div>
+				<div class="fmcode">
+					\PROCEDURE{FindMaximumSubarray}{A,low,high}
+					\IF{high == low}
+					\RETURN{(low,high,A[low])}\COMMENT{base case: only one element}
+					\ELSE
+					\LET{mid}{\floor{(low + high)/2}}
+					\LET{(left-low,left-high,left-sum)}{\CALL{FindMaximumSubarray}{A,low,mid}}
+					\LET{(right-low,right-high,right-sum)}{\CALL{FindMaximumSubarray}{A,mid+1,high}}
+					\LET{(cross-low,cross-high,cross-sum)}{\CALL{FindMaxCrossingSubarray}{A,low,mid,high}}
+					\IF{left-sum \geq right-sum \AND left-sum \geq cross-sum}
+					\RETURN{(left-low,left-high,left-sum)}
+					\ELSEIF{right-sum \geq left-sum \AND right-sum \geq cross-sum}
+					\RETURN{(right-low,right-high,right-sum)}
+					\ELSE
+					\RETURN{(cross-low,cross-high,cross-sum)}
+					\ENDIF
+					\ENDIF
+					\ENDPROCEDURE
 				</div>
 				<p>Base Case when \(i=j=\Theta(1)\) line 2</p>
 				<p>1,3,7-11 = \(\Theta(1)\)</p>
@@ -686,16 +740,16 @@
 				</ul>
 
 				<p>First there needs to be a large enough c that the bound works for the boundary condition</p>
-				<p>Abuse \(O\) to find some value \(n_0&gt;n\) where bound holds</p>
+				<p>Abuse \(O\) to find some value \(n_0\gt n\) where bound holds</p>
 				<p>Generally assume \(T(1) = 1\) and find val \(n\) that works</p>
 				<h3>Examples</h3>
 
 				<div>
 					<h4>Example 1</h4>
 					<div>
-						<p>Prove \(T(n)=2T(\left\lfloor n/2\right\rfloor)+n\) is \(O(n\lg n)\)</p>
+						<p>Prove \(T(n)=2T(\floor{n/2})+n\) is \(O(n\lg n)\)</p>
 						<p>Base Case</p>
-						<p>Prove \(T(n)\leq cn\lg n\) for some constant \(c&gt;0\) and for all \(n\geq n_0\) where we pitch \(n\)</p>
+						<p>Prove \(T(n)\leq cn\lg n\) for some constant \(c\gt 0\) and for all \(n\geq n_0\) where we pitch \(n\)</p>
 						<p>Assume \(T(1)=1\) is \(T(n)\leq cn\lg n\) for \(n=1\)</p>
 						<p>\(T(n)\leq c\lg 1\)</p>
 						<p>\(1\) is not \(\leq 0\)</p>
@@ -703,40 +757,49 @@
 						<p>\(T(n)\leq cn\lg n\)</p>
 						<p>\(T(2)\leq c2\lg 2\)</p>
 						<p>\(4\leq 2c\), when \(c\geq 2\)</p>
-						<p>Lets Assume this bound holds for all positive \(m&lt;n\), in particular \(m=\left\lfloor n/2\right\rfloor\), yielding</p>
-						<p>\[T(\left\lfloor\frac{n}{2}\right\rfloor)\leq
-							c\left\lfloor\frac{n}{2}\right\rfloor\lg(\left\lfloor\frac{n}{2}\right\rfloor) \]</p>
+						<p>Lets Assume this bound holds for all positive \(m\lt n\), in particular \(m=\floor{n/2}\), yielding</p>
+						<p>\[T\left(\floor{\frac{n}{2}}\right)\leq c\floor{\frac{n}{2}}\lg\left(\floor{\frac{n}{2}}\right)\]</p>
 						<p>Now we substitute</p>
 						<p>
-							\[\begin{aligned}T(n)&=2T(\floor{n/2})+n\\
+							\[\begin{aligned}
+							T(n)&=2T(\floor{n/2})+n\\
 							&\leq 2(c\floor{n/2}\lg(\floor{n/2}))+n\\
 							&\leq cn\lg(n/2)+n\\
 							&=cn\lg n-cn\lg 2+n\\
 							&=cn\lg n-cn+n\\
-							&\leq cn\lg n\end{aligned}\]
+							&\leq cn\lg n
+							\end{aligned}\]
 						</p>
 					</div>
 
 					<h4>Example 2</h4>
 					<div>
-						<p>Prove \[T(n)=T\left(\left\lfloor\frac{n}{2}\right\rfloor\right)+T\left(\left\lceil\frac{n}{2}\right\rceil\right)+1\] is
-							\(O(n)\)</p>
+						<p>Prove \(T(n)=T\left(\floor{\frac{n}{2}}\right)+T\left(\ceil{\frac{n}{2}}\right)+1\) is \(O(n)\)</p>
 						<p>Base Case: Assume \(T(1)=1\)</p>
-						<p>\[\begin{aligned}T(n)&\leq cn\\
+						<p>
+							\[\begin{aligned}
+							T(n)&\leq cn\\
 							T(1)&\leq 1c\\
-							1&\leq c\end{aligned}\]</p>
+							1&\leq c
+							\end{aligned}\]
+						</p>
 						<p>The base case holds</p>
-						<p>Induction: Assume \(T(m)\leq cm\) for all \(m&lt;n\)</p>
-						<p>let \[m=\frac{n}{2} \implies T\left(\frac{n}{2}\right)\leq c\left(\frac{n}{2}\right)\]</p>
-						<p>Then substitute (assume \(n\) is divisible by 2)</p>
-						<p>\[\begin{aligned}T(n)&\leq c(n/2) + c(n/2) + 1\\
+						<p>Induction: Assume \(T(m)\leq cm\) for all \(m\lt n\)</p>
+						<p>let \(m=\frac{n}{2} \implies T\left(\frac{n}{2}\right)\leq c\left(\frac{n}{2}\right)\)</p>
+						<p>Then substitute (assume \(n\) is divisible by \(2\))</p>
+						<p>
+							\[\begin{aligned}
+							T(n)&\leq c(n/2) + c(n/2) + 1\\
 							&=2c(n/2) + 1\\
 							&=cn + 1\\
-							T(n)&\leq cn+1\not\Rightarrow T(n)\leq cn\end{aligned}\]</p>
+							T(n)&\leq cn+1\not\Rightarrow T(n)\leq cn
+							\end{aligned}\]
+						</p>
 						<p>We can deal with this by subtracting a consant from our assumption</p>
-						<p>Assume \(T(m)\leq c_1m-c_2\) for all \(m&lt;n\)</p>
+						<p>Assume \(T(m)\leq c_1m-c_2\) for all \(m\lt n\)</p>
 						<p>let \[m=\frac{n}{2}\implies T\left(\frac{n}{2}\right)\leq c_1\left(\frac{n}{2}\right)-c_2\]</p>
-						<p>\[\begin{aligned}T(n)&\leq c_1(n/2)-c_2+c_1(n/2)-c_2+1\\
+						<p>\[\begin{aligned}
+							T(n)&\leq c_1(n/2)-c_2+c_1(n/2)-c_2+1\\
 							&=2c_1(n/2)-2c_2 + 1\\
 							&=c_1n-2c_2 + 1\\
 							&\leq c_1n-c_2,c_2\geq 1\\
@@ -747,29 +810,33 @@
 
 					<h4>Example 3</h4>
 					<div>
-						<p>Prove \[T(n) = 2T(\lfloor\sqrt{n}\rfloor)+\lg n\]</p>
-						<p>m = lgn, n = 2^m</p>
-						<p>T(2^m) = 2T(floor 2^m/2) + m</p>
-						<p>Rename S(n) = T(2^m)</p>
-						<p>S(m) = 2S(floor m/2) + m</p>
-						<p>From example 1, complexity = O(nlgn)</p>
+						<p>Prove \(T(n) = 2T(\floor{\sqrt{n}})+\lg n\)</p>
+						<p>\(m = \lg n, n = 2^m\)</p>
+						<p>\(T(2^m) = 2T(\floor{\frac{2^m}{2}}\) + m</p>
+						<p>Rename \(S(n) = T(2^m)\)</p>
+						<p>\(S(m) = 2S(\floor{\frac{m}{2}}) + m\)</p>
+						<p>From example 1, complexity = \(O(n\lg n)\)</p>
 						<p>Some other things that confuse me</p>
-						<p>T(n) = T(2^m) = S(m) = O(mlgm) = O(lgnlg(lgn))</p>
+						<p>\(T(n) = T(2^m) = S(m) = O(m\lg m) = O(\lg n\lg(\lg n))\)</p>
 					</div>
 
-					<p>Example 4</p>
+					<h4>Example 4</h4>
 					<div>
-						<p>Prove T(n) = T(n-1) + n is O(n^2)</p>
-						<p>Hypothesis: is T(n) \leq cn^2</p>
-						<p>Base Case: Show T(n) \leq cn^2 for some constant c > 0and for all n >= n_0</p>
-						<p>Assume T(1) = 1</p>
-						<p>T(n) = cn^2</p>
-						<p>1 \leq c, so n_0 = 1 then n >= n_0</p>
+						<p>Prove \(T(n) = T(n-1) + n\) is \(O(n^2)\)</p>
+						<p>Hypothesis: is \(T(n) \leq cn^2\)</p>
+						<p>Base Case: Show \(T(n) \leq cn^2\) for some constant \(c > 0\) and for all \(n \geq n_0\)</p>
+						<p>Assume \(T(1) = 1\)</p>
+						<p>\(T(n) = cn^2\)</p>
+						<p>\(1 \leq c\), so \(n_0 = 1\) then \(n \geq n_0\)</p>
 						<p>Inductive step</p>
-						<p>T(n) = T(n-1) + n \leq c(n-1)^2 + n</p>
-						<p>= cn^2 + (1-2c)n + 1 = cn^2 + n - 2cn + 1</p>
-						<p>\leq cn^2 + 2 - 2c</p>
-						<p>\leq cn^2 = O(n^2)</p>
+						<p>
+							\[\begin{aligned}
+							T(n)&= T(n-1) + n &\leq c(n-1)^2 + n\\
+							&= cn^2 + (1-2c)n + 1 &= cn^2 + n - 2cn + 1\\
+							&\leq cn^2 + 2 - 2c\\
+							&\leq cn^2 &= O(n^2)
+							\end{aligned}\]
+						</p>
 					</div>
 
 				</div>
@@ -779,57 +846,49 @@
 			<div>
 				<p>Easiest way to solve recurrences of the form \(T(n)\) is of the form \(T(n)=aT(n/b)+f(n)\)</p>
 				<ol>
-					<li>If \(f(n)=O(n^{\log_ba-\epsilon})\) for some constant \(\epsilon&gt;0\), Then \(T(n)=\Theta(n^{\log_ba})\)</li>
+					<li>If \(f(n)=O(n^{\log_ba-\epsilon})\) for some constant \(\epsilon\gt 0\), Then \(T(n)=\Theta(n^{\log_ba})\)</li>
 					<li>If \(f(n)=\Theta(n^{\log_ba})\), Then \(T(n)=\Theta(n^{\log_ba}\lg n)\)</li>
-					<li>If \(f(n)=\Omega(n^{\log_ba+\epsilon})\) for some constant \(\epsilon&gt;0\), and if \(af(n/b)\leq cf(n)\) for some constant
-						\(c&lt;1\) and all \(n\geq n_0\), Then \(T(n)=\Theta(f(n))\)</li>
+					<li>If \(f(n)=\Omega(n^{\log_ba+\epsilon})\) for some constant \(\epsilon\gt 0\), and if \(af(n/b)\leq cf(n)\) for some
+						constant \(c\lt 1\) and all \(n\geq n_0\), Then \(T(n)=\Theta(f(n))\)</li>
 				</ol>
 			</div>
 
 			<h2>Heaps</h2>
 			<div>
-				<div class="fcode code">
-					<p>Max-Heapify(A,i)</p>
-					<div>
-						<p>l = \textsc{Left}(i)</p>
-						<p>r = \textsc{Right}(i)</p>
-						<p>if l \leq heap-size[A] and A[l] > A[i]</p>
-						<div>
-							<p>largest = l</p>
-						</div>
-						<p>else largest = i</p>
-						<p>if r \leq heap-size[A] and A[r] > A[largest]</p>
-						<div>
-							<p>largest = r</p>
-						</div>
-						<p>if largest != i</p>
-						<div>
-							<p>exchange A[i] A[largest]</p>
-							<p>\textsc{Max-Heapify}(A,largest)</p>
-						</div>
-					</div>
+				<div class="fmcode">
+					\PROCEDURE{MaxHeapify}{A,i}
+					\LET{l}{\CALL{Left}{i}}
+					\LET{r}{\CALL{Right}{i}}
+					\IF{l \leq A.heap-size\AND A[l] \gt A[i]}
+					\LET{largest}{l}
+					\ENDIF
+					\ELSE \LET{largest}{i}
+					\IF{r\leq A.heap-size\AND A[r] \gt A[largest]}
+					\LET{largest}{r}
+					\ENDIF
+					\IF{largest\neq i}
+					\EXCHANGE{A[i]}{A[largest]}
+					\CALL{MaxHeapify}{A,largest}
+					\ENDIF
+					\ENDPROCEDURE
 				</div>
-				<div class="fcode code">
-					<p>Build-Max-Heap(A)</p>
-					<div>
-						<p>heap-size[A] = length[A]</p>
-						<p>for i = \lfloor length[A]/2 \rfloor downto 1</p>
-						<div>
-							<p>\textsc{Max-Heapify}(A,i)</p>
-						</div>
-					</div>
+				<div class="fmcode">
+					\PROCEDURE{BuildMaxHeap}{A}
+					\LET{A.heap-size}{A.length}
+					\FOR{\LET{i}{\floor{A.length/2}\DOWNTO 1}}
+					\CALL{MaxHeapify}{A,i}
+					\ENDFOR
+					\ENDPROCEDURE
 				</div>
-				<div class="code fcode">
-					<p>Heapsort(A)</p>
-					<div>
-						<p>\textsc{Build-Max-Heap}(A)</p>
-						<p>for i = length[A] downto 2</p>
-						<div>
-							<p>exchange A[1] \lrarrow A[i]</p>
-							<p>heap-size[A] = heap-size[A] - 1</p>
-							<p>\textsc{Max-Heapify}(A,1)</p>
-						</div>
-					</div>
+				<div class="fmcode">
+					\PROCEDURE{Heapsort}{A}
+					\CALL{BuildMaxHeap}{A}
+					\FOR{\LET{i}{A.length\DOWNTO 2}}
+					\EXCHANGE{A[1]}{A[i]}
+					\LET{A.heap-size}{A.heap-size - 1}
+					\CALL{MaxHeapify}{A,1}
+					\ENDFOR
+					\ENDPROCEDURE
 				</div>
 			</div>
 
@@ -850,20 +909,17 @@
 					<h4>Recursive Solution</h4>
 					<div>
 						<p>First lets look at how awful the recursive solution is</p>
-						<div class="fcode">
-							<p>Cut-Rod(p,n)</p>
-							<div>
-								<p>if n == 0</p>
-								<div>
-									<p>return 0</p>
-								</div>
-								<p>q = -\infty</p>
-								<p>for i = 1 to n</p>
-								<div>
-									<p>q = \textsc{Max}(q, p[i] + \textsc{Cut-Rod}(p, n - i))</p>
-								</div>
-								<p>return q</p>
-							</div>
+						<div class="fmcode">
+							\PROCEDURE{CutRod}{p,n}
+							\IF{n == 0}
+							\RETURN{0}
+							\ENDIF
+							\LET{q}{-\infty}
+							\FOR{\LET{i}{1}\TO n}
+							\LET{q}{\CALL{Max}{q, p[i] + \CALL{CutRod}{p, n-i}}}
+							\ENDFOR
+							\RETURN{q}
+							\ENDPROCEDURE
 						</div>
 						<p>The problem with this is we make a lot of the same call multiple times</p>
 						<p>We end up with the runtime</p>
@@ -878,69 +934,58 @@
 					<h4>Dynamic Solution</h4>
 					<div>
 						<p>Top down approach</p>
-						<div class="fcode">
-							<p>Memoized-Cut-Rod(p,n)</p>
-							<div>
-								<p>let r[0\ldots n] be a new array</p>
-								<p>for i = 0 to n</p>
-								<div>
-									<p>r[i] = -\infty</p>
-								</div>
-								<p>return \textsc{Memoized-Cut-Rod-Aux}(</p>
-							</div>
+						<div class="fmcode">
+							\PROCEDURE{MemoizedCutRod}{p,n}
+							\ARRAY{r}{0}{n}
+							\FOR{\LET{i}{0}\TO n}
+							\LET{r[i]}{-\infty}
+							\ENDFOR
+							\RETURN{\CALL{MemoizedCutRodAux}{}}
+							\ENDPROCEDURE
 						</div>
 
 						<p>Bottom up approach</p>
-						<div class="fcode">
-							<p>Bottom-Up-Cut-Rod(p,n)</p>
-							<div>
-								<p>let r[0\ldots n] be a new array</p>
-								<p>r[0] = 0</p>
-								<p>for j = 1 to n</p>
-								<div>
-									<p>q = -\infty</p>
-									<p>for i = 1 to j</p>
-									<div>
-										<p>q = \textsc{Max}(q, p[i] + r[j - i])</p>
-									</div>
-									<p>r[j] = </p>
-								</div>
-							</div>
+						<div class="fmcode">
+							\PROCEDURE{BottomUpCutRod}{p,n}
+							\ARRAY{r}{0}{n}
+							\LET{r[0]}{0}
+							\FOR{\LET{j}{1}\TO n}
+							\LET{q}{-\infty}
+							\FOR{\LET{i}{1}\TO j}
+							\LET{q}{\CALL{Max}{q, p[i] + r[j - i]}}
+							\ENDFOR
+							\LET{r[j]}{}
+							\ENDFOR
+							\ENDPROCEDURE
 						</div>
 
 						<p>The code above only gives us the theroretical maximum revenue. We want to know where to cut.</p>
-						<div class="fcode">
-							<p>Extended-Bottom-Up-Cut-Rod(p,n)</p>
-							<div>
-								<p>let r[0\ldots n] and s[0\ldots n] be new arrays</p>
-								<p>r[0] = 0</p>
-								<p>for j = 0 to n</p>
-								<div>
-									<p>q = -\infty</p>
-									<p>for i = 1 to j</p>
-									<div>
-										<p>if q &lt; p[i] + r[j - i]</p>
-										<div>
-											<p>q = p[i] + r[j - i]</p>
-											<p>s[j] = i</p>
-										</div>
-									</div>
-									<p>r[j] = q</p>
-								</div>
-								<p>return (r,s)</p>
-							</div>
+						<div class="fmcode">
+							\PROCEDURE{ExtendedBottomUpCutRod}{p,n}
+							\ARRAYS{r}{0}{n}{s}{0}{n}
+							\LET{r[0]}{0}
+							\FOR{\LET{j}{0}\TO n}
+							\LET{q}{-\infty}
+							\FOR{\LET{i}{1}\TO j}
+							\IF{q \lt p[i] + r[j - i]}
+							\LET{q}{p[i] + r[j - i]}
+							\LET{s[j]}{i}
+							\ENDIF
+							\ENDFOR
+							\LET{r[j]}{q}
+							\ENDFOR
+							\RETURN{(r,s)}
+							\ENDPROCEDURE
 						</div>
 
-						<div class="fcode">
-							<p>Print-Cut-Rod-Solution(p,n)</p>
-							<div>
-								<p>(r,s) = \textsc{Extended-Bottom-Up-Cut-Rod}(p,n)</p>
-								<p>while n &gt; 0</p>
-								<div>
-									<p>\textsc{Print}(s[n])</p>
-									<p>n = n - s[n]</p>
-								</div>
-							</div>
+						<div class="fmcode">
+							\PROCEDURE{PrintCutRodSolution}{p,n}
+							\LET{(r,s)}{\CALL{ExtendedBottomUpCutRod}{p,n}}
+							\WHILE{n\gt 0}
+							\CALL{Print}{s[n]}
+							\LET{n}{n - s[n]}
+							\ENDWHILE
+							\ENDPROCEDURE
 						</div>
 
 					</div>
@@ -950,8 +995,8 @@
 				<h3>Matrix-Chain Multiplication</h3>
 				<div>
 					<p> Matrix multiplication is associative, that is the parenthesisation, or the the order of multiplications, dosent matter for
-						the answer to be correct. The order does however affect the number of scalar multiplications required and therefore the time
-						cost of the operation.
+						the answer to be correct. The order does however affect the number of scalar multiplications required and therefore the
+						time cost of the operation.
 					</p>
 					<p> Recall that in matrix multiplication the inner dimensions of the matrices must be equal and the outer dimensions are the
 						dimensions of the resulting matrix. For example, \(A_{p\times r}\times B_{r\times q} = C_{p\times q}\). The cost of the
@@ -961,45 +1006,37 @@
 					<h4>Dynamic Solution</h4>
 					<div>
 						<p>Bottom up approach</p>
-						<div class="fcode">
-							<p>Matrix-Chain-Order(p)</p>
-							<div>
-								<p>n = p.length - 1</p>
-								<p>let m[1\ldots n, 1\ldots n] and s[1\ldots n - 1, 2\ldots n] be new tables</p>
-								<p>for i = 1 to n</p>
-								<div>
-									<p>m[i, i] = 0</p>
-								</div>
-								<p>for l = 2 to n // l is the chain length</p>
-								<div>
-									<p>for i = 1 to n - l + 1</p>
-									<div>
-										<p>j = i + l - 1</p>
-										<p>m[i, j] = \infty</p>
-										<p>for k = i to j - 1</p>
-										<div>
-											<p>q = m[i, k] + m[k + 1, j] + p_{i - 1} p_k p_j</p>
-											<p>if q &lt; m[i, j]</p>
-											<div>
-												<p>m[i, j] = q</p>
-												<p>s[i, j] = k</p>
-											</div>
-										</div>
-									</div>
-								</div>
-								<p>return (m, s)</p>
-							</div>
+						<div class="fmcode">
+							\PROCEDURE{MatrixChainOrder}{p}
+							\LET{n}{p.length - 1}
+							let m[1\ldots n, 1\ldots n] and s[1\ldots n - 1, 2\ldots n] be new tables
+							\FOR{\LET{i}{1} \TO n}
+							\LET{m[i, i]}{0}
+							\ENDFOR
+							\FOR{\LET{l}{2}\TO n}\COMMENT{l is the chain length}
+							\FOR{\LET{i}{1}\TO n - l + 1}
+							\LET{j}{i + l - 1}
+							\LET{m[i, j]}{\infty}
+							\FOR{\LET{k}{i}\TO j - 1}
+							\LET{q}{m[i, k] + m[k + 1, j] + p_{i - 1} p_k p_j}
+							\IF{q\lt m[i, j]}
+							\LET{m[i, j]}{q}
+							\LET{s[i, j]}{k}
+							\ENDIF
+							\ENDFOR
+							\ENDFOR
+							\ENDFOR
+							\RETURN{(m, s)}
 						</div>
 					</div>
 
 				</div>
-
-				<h3></h3>
 			</div>
 
 			<h2>Knapsack Problem</h2>
 			<div>
-				<p> A thief robbing a store finds \(n\) items. Each item \(i\) has a value \(v_i\) dollars and weights \(w_i\) pounds, where \(v_i\)
+				<p> A thief robbing a store finds \(n\) items. Each item \(i\) has a value \(v_i\) dollars and weights \(w_i\) pounds, where
+					\(v_i\)
 					and
 					\(w_i\) are integers. The thief wants to take as valuable a load as possible, but he can carry at most \(W\) pounds in his
 					knapsack, for some integer \(W\). So, he must figure out what items he should take.
@@ -1021,7 +1058,8 @@
 					<p>The 0-1 Knapsack cannot be solved with a greedy approach. The fractional version can be.</p>
 					<h4>Fractional Greedy Algorithm</h4>
 					<div>
-						<p> From the items left, we take the one with the highest value per pound, \(v_i/w_i\) If we reach a point where taking the
+						<p> From the items left, we take the one with the highest value per pound, \(v_i/w_i\) If we reach a point where taking
+							the
 							next highest item would exceeded the weight limit, we only take enough of that
 							item to fill the weight capacity.
 						</p>
@@ -1043,747 +1081,1081 @@
 					</p>
 
 					<p>Step 1, make a freqency table</p>
-					<table>
-						<tr>
-							<th>Character</th>
-							<th>Occurances</th>
-						</tr>
-						<tr>
-							<td>⎵</td>
-							<td>18</td>
-						</tr>
-						<tr>
-							<td>i</td>
-							<td>11</td>
-						</tr>
-						<tr>
-							<td>o</td>
-							<td>10</td>
-						</tr>
-						<tr>
-							<td>e</td>
-							<td>10</td>
-						</tr>
-						<tr>
-							<td>s</td>
-							<td>8</td>
-						</tr>
-						<tr>
-							<td>u</td>
-							<td>8</td>
-						</tr>
-						<tr>
-							<td>t</td>
-							<td>8</td>
-						</tr>
-						<tr>
-							<td>r</td>
-							<td>7</td>
-						</tr>
-						<tr>
-							<td>m</td>
-							<td>7</td>
-						</tr>
-						<tr>
-							<td>l</td>
-							<td>5</td>
-						</tr>
-						<tr>
-							<td>a</td>
-							<td>5</td>
-						</tr>
-						<tr>
-							<td>q</td>
-							<td>5</td>
-						</tr>
-						<tr>
-							<td>p</td>
-							<td>4</td>
-						</tr>
-						<tr>
-							<td>d</td>
-							<td>4</td>
-						</tr>
-						<tr>
-							<td>c</td>
-							<td>3</td>
-						</tr>
-						<tr>
-							<td>.</td>
-							<td>2</td>
-						</tr>
-						<tr>
-							<td>n</td>
-							<td>2</td>
-						</tr>
-						<tr>
-							<td>,</td>
-							<td>2</td>
-						</tr>
-						<tr>
-							<td>v</td>
-							<td>1</td>
-						</tr>
-					</table>
-
-
+					<p>⎵:18, i:11, o:10, e:10, s:8, u:8, t:8, r:7, m:7, l:5, a:5, q:5, p:4, d:4, c:3, .:2, n:2, ,:2, v:1</p>
 					<p>We use this table to make a min-queue of nodes</p>
-					<table>
-						<tr>
-							<th>Node</th>
-							<th>Character</th>
-							<th>Occurances</th>
-							<th>Left</th>
-							<th>Right</th>
-						</tr>
-						<tr>
-							<td>1</td>
-							<td>v</td>
-							<td>1</td>
-						</tr>
-						<tr>
-							<td>2</td>
-							<td>.</td>
-							<td>2</td>
-						</tr>
-						<tr>
-							<td>3</td>
-							<td>n</td>
-							<td>2</td>
-						</tr>
-						<tr>
-							<td>4</td>
-							<td>,</td>
-							<td>2</td>
-						</tr>
-						<tr>
-							<td>5</td>
-							<td>c</td>
-							<td>3</td>
-						</tr>
-						<tr>
-							<td>6</td>
-							<td>p</td>
-							<td>4</td>
-						</tr>
-						<tr>
-							<td>7</td>
-							<td>d</td>
-							<td>4</td>
-						</tr>
-						<tr>
-							<td>8</td>
-							<td>l</td>
-							<td>5</td>
-						</tr>
-						<tr>
-							<td>9</td>
-							<td>a</td>
-							<td>5</td>
-						</tr>
-						<tr>
-							<td>10</td>
-							<td>q</td>
-							<td>5</td>
-						</tr>
-						<tr>
-							<td>11</td>
-							<td>r</td>
-							<td>7</td>
-						</tr>
-						<tr>
-							<td>12</td>
-							<td>m</td>
-							<td>7</td>
-						</tr>
-						<tr>
-							<td>13</td>
-							<td>s</td>
-							<td>8</td>
-						</tr>
-						<tr>
-							<td>14</td>
-							<td>u</td>
-							<td>8</td>
-						</tr>
-						<tr>
-							<td>15</td>
-							<td>t</td>
-							<td>8</td>
-						</tr>
-						<tr>
-							<td>16</td>
-							<td>o</td>
-							<td>10</td>
-						</tr>
-						<tr>
-							<td>17</td>
-							<td>e</td>
-							<td>10</td>
-						</tr>
-						<tr>
-							<td>18</td>
-							<td>i</td>
-							<td>11</td>
-						</tr>
-						<tr>
-							<td>19</td>
-							<td>⎵</td>
-							<td>18</td>
-						</tr>
-					</table>
+					<p>v:1, ,:2, n:2, .:2, c:3, d:4, p:4, q:5, a:5, l:5, m:7, r:7, t:8, u:8, s:8, e:10, o:10, i:11, ⎵:18</p>
 					<p> The alogrithm then iteratively pops two nodes from the queue, x and y, and pushes a new node z with x and y as its
 						left and right children and frequency equal to their sum.
 					</p>
-
-					<div class="column-wrapper">
-						<div class="column">
-							<table>
-								<tr>
-									<th>Node</th>
-									<th>Character</th>
-									<th>Occurances</th>
-									<th>Left</th>
-									<th>Right</th>
-								</tr>
-								<tr>
-									<td>3</td>
-									<td>n</td>
-									<td>2</td>
-								</tr>
-								<tr>
-									<td>4</td>
-									<td>,</td>
-									<td>2</td>
-								</tr>
-								<tr>
-									<td>20</td>
-									<td></td>
-									<td>3</td>
-									<td>1</td>
-									<td>2</td>
-								</tr>
-								<tr>
-									<td>5</td>
-									<td>c</td>
-									<td>3</td>
-								</tr>
-								<tr>
-									<td>6</td>
-									<td>p</td>
-									<td>4</td>
-								</tr>
-								<tr>
-									<td>7</td>
-									<td>d</td>
-									<td>4</td>
-								</tr>
-								<tr>
-									<td>8</td>
-									<td>l</td>
-									<td>5</td>
-								</tr>
-								<tr>
-									<td>9</td>
-									<td>a</td>
-									<td>5</td>
-								</tr>
-								<tr>
-									<td>10</td>
-									<td>q</td>
-									<td>5</td>
-								</tr>
-								<tr>
-									<td>11</td>
-									<td>r</td>
-									<td>7</td>
-								</tr>
-								<tr>
-									<td>12</td>
-									<td>m</td>
-									<td>7</td>
-								</tr>
-								<tr>
-									<td>13</td>
-									<td>s</td>
-									<td>8</td>
-								</tr>
-								<tr>
-									<td>14</td>
-									<td>u</td>
-									<td>8</td>
-								</tr>
-								<tr>
-									<td>15</td>
-									<td>t</td>
-									<td>8</td>
-								</tr>
-								<tr>
-									<td>16</td>
-									<td>o</td>
-									<td>10</td>
-								</tr>
-								<tr>
-									<td>17</td>
-									<td>e</td>
-									<td>10</td>
-								</tr>
-								<tr>
-									<td>18</td>
-									<td>i</td>
-									<td>11</td>
-								</tr>
-								<tr>
-									<td>19</td>
-									<td>⎵</td>
-									<td>18</td>
-								</tr>
-							</table>
-						</div>
-						<div class="column">
-							<div class="tree">
-								<ul>
-									<li>
-										<p>20</p>
-										<ul>
-											<li>
-												<p>1: v</p>
-											</li>
-											<li>
-												<p>2: .</p>
-											</li>
-										</ul>
-									</li>
+					<div class="tree">
+						<ul>
+							<li>n:2, .:2,</li>
+						</ul>
+						<ul>
+							<li>3<ul>
+									<li>v:1</li>
+									<li>,:2</li>
 								</ul>
-							</div>
-						</div>
+							</li>
+						</ul>
+						<ul>
+							<li>c:3, d:4, p:4, q:5, a:5, l:5, m:7, r:7, t:8, u:8, s:8, e:10, o:10, i:11, ⎵:18</li>
+						</ul>
 					</div>
-
-					<div class="column-wrapper">
-						<div class="column">
-							<table>
-								<tr>
-									<th>Node</th>
-									<th>Character</th>
-									<th>Occurances</th>
-									<th>Left</th>
-									<th>Right</th>
-								</tr>
-								<tr>
-									<td>20</td>
-									<td></td>
-									<td>3</td>
-									<td>1</td>
-									<td>2</td>
-								</tr>
-								<tr>
-									<td>5</td>
-									<td>c</td>
-									<td>3</td>
-								</tr>
-								<tr>
-									<td>21</td>
-									<td></td>
-									<td>4</td>
-									<td>3</td>
-									<td>4</td>
-								</tr>
-								<tr>
-									<td>6</td>
-									<td>p</td>
-									<td>4</td>
-								</tr>
-								<tr>
-									<td>7</td>
-									<td>d</td>
-									<td>4</td>
-								</tr>
-								<tr>
-									<td>8</td>
-									<td>l</td>
-									<td>5</td>
-								</tr>
-								<tr>
-									<td>9</td>
-									<td>a</td>
-									<td>5</td>
-								</tr>
-								<tr>
-									<td>10</td>
-									<td>q</td>
-									<td>5</td>
-								</tr>
-								<tr>
-									<td>11</td>
-									<td>r</td>
-									<td>7</td>
-								</tr>
-								<tr>
-									<td>12</td>
-									<td>m</td>
-									<td>7</td>
-								</tr>
-								<tr>
-									<td>13</td>
-									<td>s</td>
-									<td>8</td>
-								</tr>
-								<tr>
-									<td>14</td>
-									<td>u</td>
-									<td>8</td>
-								</tr>
-								<tr>
-									<td>15</td>
-									<td>t</td>
-									<td>8</td>
-								</tr>
-								<tr>
-									<td>16</td>
-									<td>o</td>
-									<td>10</td>
-								</tr>
-								<tr>
-									<td>17</td>
-									<td>e</td>
-									<td>10</td>
-								</tr>
-								<tr>
-									<td>18</td>
-									<td>i</td>
-									<td>11</td>
-								</tr>
-								<tr>
-									<td>19</td>
-									<td>⎵</td>
-									<td>18</td>
-								</tr>
-							</table>
-						</div>
-						<div class="column">
-							<div class="tree">
-								<ul>
-									<li>
-										<p>20</p>
-										<ul>
-											<li>
-												<p>1: v</p>
-											</li>
-											<li>
-												<p>2: .</p>
-											</li>
-										</ul>
-									</li>
-								</ul>
-							</div>
-							<div class="tree">
-								<ul>
-									<li>
-										<p>21</p>
-										<ul>
-											<li>
-												<p>3: n</p>
-											</li>
-											<li>
-												<p>4: ,</p>
-											</li>
-										</ul>
-									</li>
-								</ul>
-							</div>
-						</div>
-					</div>
-
-					<div class="column-wrapper">
-						<div class="column">
-							<table>
-								<tr>
-									<th>Node</th>
-									<th>Character</th>
-									<th>Occurances</th>
-									<th>Left</th>
-									<th>Right</th>
-								</tr>
-								<tr>
-									<td>21</td>
-									<td></td>
-									<td>4</td>
-									<td>3</td>
-									<td>4</td>
-								</tr>
-								<tr>
-									<td>6</td>
-									<td>p</td>
-									<td>4</td>
-								</tr>
-								<tr>
-									<td>7</td>
-									<td>d</td>
-									<td>4</td>
-								</tr>
-								<tr>
-									<td>8</td>
-									<td>l</td>
-									<td>5</td>
-								</tr>
-								<tr>
-									<td>9</td>
-									<td>a</td>
-									<td>5</td>
-								</tr>
-								<tr>
-									<td>10</td>
-									<td>q</td>
-									<td>5</td>
-								</tr>
-								<tr>
-									<td>22</td>
-									<td></td>
-									<td>6</td>
-									<td>20</td>
-									<td>5</td>
-								</tr>
-								<tr>
-									<td>11</td>
-									<td>r</td>
-									<td>7</td>
-								</tr>
-								<tr>
-									<td>12</td>
-									<td>m</td>
-									<td>7</td>
-								</tr>
-								<tr>
-									<td>13</td>
-									<td>s</td>
-									<td>8</td>
-								</tr>
-								<tr>
-									<td>14</td>
-									<td>u</td>
-									<td>8</td>
-								</tr>
-								<tr>
-									<td>15</td>
-									<td>t</td>
-									<td>8</td>
-								</tr>
-								<tr>
-									<td>16</td>
-									<td>o</td>
-									<td>10</td>
-								</tr>
-								<tr>
-									<td>17</td>
-									<td>e</td>
-									<td>10</td>
-								</tr>
-								<tr>
-									<td>18</td>
-									<td>i</td>
-									<td>11</td>
-								</tr>
-								<tr>
-									<td>19</td>
-									<td>⎵</td>
-									<td>18</td>
-								</tr>
-							</table>
-						</div>
-						<div class="column">
-							<div class="tree">
-								<ul>
-									<li>
-										<p>22</p>
-										<ul>
-											<li>
-												<p>20</p>
-												<ul>
-													<li>
-														<p>1: v</p>
-													</li>
-													<li>
-														<p>2: .</p>
-													</li>
-												</ul>
-											</li>
-											<li>
-												<p>5: c</p>
-											</li>
-										</ul>
-									</li>
-								</ul>
-							</div>
-							<div class="tree">
-								<ul>
-									<li>
-										<p>21</p>
-										<ul>
-											<li>
-												<p>3: n</p>
-											</li>
-											<li>
-												<p>4: ,</p>
-											</li>
-										</ul>
-									</li>
-								</ul>
-							</div>
-						</div>
-					</div>
-
-					<div class="column-wrapper">
-						<div class="column">
-							<table>
-								<tr>
-									<th>Node</th>
-									<th>Character</th>
-									<th>Occurances</th>
-									<th>Left</th>
-									<th>Right</th>
-								</tr>
-								<tr>
-									<td>7</td>
-									<td>d</td>
-									<td>4</td>
-								</tr>
-								<tr>
-									<td>8</td>
-									<td>l</td>
-									<td>5</td>
-								</tr>
-								<tr>
-									<td>9</td>
-									<td>a</td>
-									<td>5</td>
-								</tr>
-								<tr>
-									<td>10</td>
-									<td>q</td>
-									<td>5</td>
-								</tr>
-								<tr>
-									<td>22</td>
-									<td></td>
-									<td>6</td>
-									<td>20</td>
-									<td>5</td>
-								</tr>
-								<tr>
-									<td>11</td>
-									<td>r</td>
-									<td>7</td>
-								</tr>
-								<tr>
-									<td>12</td>
-									<td>m</td>
-									<td>7</td>
-								</tr>
-								<tr>
-									<td>23</td>
-									<td></td>
-									<td>8</td>
-									<td>21</td>
-									<td>6</td>
-								</tr>
-								<tr>
-									<td>13</td>
-									<td>s</td>
-									<td>8</td>
-								</tr>
-								<tr>
-									<td>14</td>
-									<td>u</td>
-									<td>8</td>
-								</tr>
-								<tr>
-									<td>15</td>
-									<td>t</td>
-									<td>8</td>
-								</tr>
-								<tr>
-									<td>16</td>
-									<td>o</td>
-									<td>10</td>
-								</tr>
-								<tr>
-									<td>17</td>
-									<td>e</td>
-									<td>10</td>
-								</tr>
-								<tr>
-									<td>18</td>
-									<td>i</td>
-									<td>11</td>
-								</tr>
-								<tr>
-									<td>19</td>
-									<td>⎵</td>
-									<td>18</td>
-								</tr>
-							</table>
-						</div>
-						<div class="column">
-							<div class="tree">
-								<ul>
-									<li>
-										<p>22</p>
-										<ul>
-											<li>
-												<p>20</p>
-												<ul>
-													<li>
-														<p>1: v</p>
-													</li>
-													<li>
-														<p>2: .</p>
-													</li>
-												</ul>
-											</li>
-											<li>
-												<p>5: c</p>
-											</li>
-										</ul>
-									</li>
-								</ul>
-							</div>
-							<div class="tree">
-								<ul>
-									<li>
-										<p>23</p>
-										<ul>
-											<li>
-												<p>21</p>
-												<ul>
-													<li>
-														<p>3: n</p>
-													</li>
-													<li>
-														<p>4: ,</p>
-													</li>
-												</ul>
-											</li>
-											<li>
-												<p>6: p</p>
-											</li>
-										</ul>
-									</li>
-								</ul>
-							</div>
-						</div>
-					</div>
-
 					<hr>
+					<div class="tree">
+						<ul>
+							<li>3<ul>
+									<li>v:1</li>
+									<li>,:2</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>c:3,</li>
+						</ul>
+						<ul>
+							<li>4<ul>
+									<li>n:2</li>
+									<li>.:2</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>d:4, p:4, q:5, a:5, l:5, m:7, r:7, t:8, u:8, s:8, e:10, o:10, i:11, ⎵:18</li>
+						</ul>
+					</div>
+					<hr>
+					<div class="tree">
+						<ul>
+							<li>4<ul>
+									<li>n:2</li>
+									<li>.:2</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>d:4, p:4, q:5, a:5, l:5,</li>
+						</ul>
+						<ul>
+							<li>6<ul>
+									<li>3<ul>
+											<li>v:1</li>
+											<li>,:2</li>
+										</ul>
+									</li>
+									<li>c:3,</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>m:7, r:7, t:8, u:8, s:8, e:10, o:10, i:11, ⎵:18</li>
+						</ul>
+					</div>
+					<hr>
+					<div class="tree">
+						<ul>
+							<li>p:4, q:5, a:5, l:5,</li>
+						</ul>
+						<ul>
+							<li>6<ul>
+									<li>3<ul>
+											<li>v:1</li>
+											<li>,:2</li>
+										</ul>
+									</li>
+									<li>c:3,</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>m:7, r:7,</li>
+						</ul>
+						<ul>
+							<li>8<ul>
+									<li>4<ul>
+											<li>n:2</li>
+											<li>.:2</li>
+										</ul>
+									</li>
+									<li>d:4,</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>t:8, u:8, s:8, e:10, o:10, i:11, ⎵:18</li>
+						</ul>
+					</div>
+					<hr>
+					<div class="tree">
+						<ul>
+							<li> a:5, l:5,</li>
+						</ul>
+						<ul>
+							<li>6<ul>
+									<li>3<ul>
+											<li>v:1</li>
+											<li>,:2</li>
+										</ul>
+									</li>
+									<li>c:3,</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>m:7, r:7,</li>
+						</ul>
+						<ul>
+							<li>8<ul>
+									<li>4<ul>
+											<li>n:2</li>
+											<li>.:2</li>
+										</ul>
+									</li>
+									<li>d:4</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>t:8, u:8, s:8,</li>
+						</ul>
+						<ul>
+							<li>9<ul>
+									<li>p:4</li>
+									<li>q:5</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>e:10, o:10, i:11, ⎵:18</li>
+						</ul>
+					</div>
+					<hr>
+					<div class="tree">
+						<ul>
+							<li>6<ul>
+									<li>3<ul>
+											<li>v:1</li>
+											<li>,:2</li>
+										</ul>
+									</li>
+									<li>c:3</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>m:7, r:7,</li>
+						</ul>
+						<ul>
+							<li>8<ul>
+									<li>4<ul>
+											<li>n:2</li>
+											<li>.:2</li>
+										</ul>
+									</li>
+									<li>d:4,</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>t:8, u:8, s:8,</li>
+						</ul>
+						<ul>
+							<li>9<ul>
+									<li>p:4</li>
+									<li>q:5</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>10<ul>
+									<li>a:5</li>
+									<li>l:5</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>e:10, o:10, i:11, ⎵:18</li>
+						</ul>
+					</div>
+					<hr>
+					<div class="tree">
+						<ul>
+							<li>r:7</li>
+						</ul>
+						<ul>
+							<li>8<ul>
+									<li>4<ul>
+											<li>n:2</li>
+											<li>.:2</li>
+										</ul>
+									</li>
+									<li>d:4,</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>t:8, u:8, s:8,</li>
+						</ul>
+						<ul>
+							<li>9<ul>
+									<li>p:4</li>
+									<li>q:5</li>
+								</ul>
+							</li>
+						</ul>
 
+						<ul>
+							<li>10<ul>
+									<li>a:5</li>
+									<li>l:5</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>e:10, o:10, i:11</li>
+						</ul>
+						<ul>
+							<li>13<ul>
+									<li>6<ul>
+											<li>3<ul>
+													<li>v:1</li>
+													<li>,:2</li>
+												</ul>
+											</li>
+											<li>c:3</li>
+										</ul>
+									</li>
+									<li>m:7</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>⎵:18</li>
+						</ul>
+					</div>
+					<hr>
+					<div class="tree">
+						<ul>
+							<li>t:8, u:8, s:8,</li>
+						</ul>
+						<ul>
+							<li>9<ul>
+									<li>p:4</li>
+									<li>q:5</li>
+								</ul>
+							</li>
+						</ul>
+
+						<ul>
+							<li>10<ul>
+									<li>a:5</li>
+									<li>l:5</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>e:10, o:10, i:11</li>
+						</ul>
+						<ul>
+							<li>13<ul>
+									<li>6<ul>
+											<li>3<ul>
+													<li>v:1</li>
+													<li>,:2</li>
+												</ul>
+											</li>
+											<li>c:3</li>
+										</ul>
+									</li>
+									<li>m:7</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>15<ul>
+									<li>r:7</li>
+									<li>8<ul>
+											<li>4<ul>
+													<li>n:2</li>
+													<li>.:2</li>
+												</ul>
+											</li>
+											<li>d:4,</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>⎵:18</li>
+						</ul>
+					</div>
+					<hr>
 					<div class="tree">
 
+						<ul>
+							<li>s:8</li>
+						</ul>
+						<ul>
+							<li>9<ul>
+									<li>p:4</li>
+									<li>q:5</li>
+								</ul>
+							</li>
+						</ul>
+
+						<ul>
+							<li>10<ul>
+									<li>a:5</li>
+									<li>l:5</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>e:10, o:10, i:11</li>
+						</ul>
+						<ul>
+							<li>13<ul>
+									<li>6<ul>
+											<li>3<ul>
+													<li>v:1</li>
+													<li>,:2</li>
+												</ul>
+											</li>
+											<li>c:3</li>
+										</ul>
+									</li>
+									<li>m:7</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>15<ul>
+									<li>r:7</li>
+									<li>8<ul>
+											<li>4<ul>
+													<li>n:2</li>
+													<li>.:2</li>
+												</ul>
+											</li>
+											<li>d:4,</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>16<ul>
+									<li>t:8</li>
+									<li>u:8</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>⎵:18</li>
+						</ul>
+					</div>
+					<hr>
+					<div class="tree">
+						<ul>
+							<li>10<ul>
+									<li>a:5</li>
+									<li>l:5</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>e:10, o:10, i:11</li>
+						</ul>
+						<ul>
+							<li>13<ul>
+									<li>6<ul>
+											<li>3<ul>
+													<li>v:1</li>
+													<li>,:2</li>
+												</ul>
+											</li>
+											<li>c:3</li>
+										</ul>
+									</li>
+									<li>m:7</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>15<ul>
+									<li>r:7</li>
+									<li>8<ul>
+											<li>4<ul>
+													<li>n:2</li>
+													<li>.:2</li>
+												</ul>
+											</li>
+											<li>d:4,</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>16<ul>
+									<li>t:8</li>
+									<li>u:8</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>17<ul>
+									<li>s:8</li>
+									<li>9<ul>
+											<li>p:4</li>
+											<li>q:5</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>⎵:18</li>
+						</ul>
+					</div>
+					<hr>
+					<div class="tree">
+						<ul>
+							<li>o:10, i:11</li>
+						</ul>
+						<ul>
+							<li>13<ul>
+									<li>6<ul>
+											<li>3<ul>
+													<li>v:1</li>
+													<li>,:2</li>
+												</ul>
+											</li>
+											<li>c:3</li>
+										</ul>
+									</li>
+									<li>m:7</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>15<ul>
+									<li>r:7</li>
+									<li>8<ul>
+											<li>4<ul>
+													<li>n:2</li>
+													<li>.:2</li>
+												</ul>
+											</li>
+											<li>d:4,</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>16<ul>
+									<li>t:8</li>
+									<li>u:8</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>17<ul>
+									<li>s:8</li>
+									<li>9<ul>
+											<li>p:4</li>
+											<li>q:5</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>⎵:18</li>
+						</ul>
+						<ul>
+							<li>20<ul>
+									<li>10<ul>
+											<li>a:5</li>
+											<li>l:5</li>
+										</ul>
+									</li>
+									<li>e:10</li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+					<hr>
+					<div class="tree">
+						<ul>
+							<li>13<ul>
+									<li>6<ul>
+											<li>3<ul>
+													<li>v:1</li>
+													<li>,:2</li>
+												</ul>
+											</li>
+											<li>c:3</li>
+										</ul>
+									</li>
+									<li>m:7</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>15<ul>
+									<li>r:7</li>
+									<li>8<ul>
+											<li>4<ul>
+													<li>n:2</li>
+													<li>.:2</li>
+												</ul>
+											</li>
+											<li>d:4,</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>16<ul>
+									<li>t:8</li>
+									<li>u:8</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>17<ul>
+									<li>s:8</li>
+									<li>9<ul>
+											<li>p:4</li>
+											<li>q:5</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>⎵:18</li>
+						</ul>
+						<ul>
+							<li>20<ul>
+									<li>10<ul>
+											<li>a:5</li>
+											<li>l:5</li>
+										</ul>
+									</li>
+									<li>e:10</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>21<ul>
+									<li>o:10</li>
+									<li>i:11</li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+					<hr>
+					<div class="tree">
+						<ul>
+							<li>16<ul>
+									<li>t:8</li>
+									<li>u:8</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>17<ul>
+									<li>s:8</li>
+									<li>9<ul>
+											<li>p:4</li>
+											<li>q:5</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>⎵:18</li>
+						</ul>
+						<ul>
+							<li>20<ul>
+									<li>10<ul>
+											<li>a:5</li>
+											<li>l:5</li>
+										</ul>
+									</li>
+									<li>e:10</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>21<ul>
+									<li>o:10</li>
+									<li>i:11</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>28<ul>
+									<li>13<ul>
+											<li>6<ul>
+													<li>3<ul>
+															<li>v:1</li>
+															<li>,:2</li>
+														</ul>
+													</li>
+													<li>c:3</li>
+												</ul>
+											</li>
+											<li>m:7</li>
+										</ul>
+									</li>
+									<li>15<ul>
+											<li>r:7</li>
+											<li>8<ul>
+													<li>4<ul>
+															<li>n:2</li>
+															<li>.:2</li>
+														</ul>
+													</li>
+													<li>d:4,</li>
+												</ul>
+											</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+					<hr>
+					<div class="tree">
+						<ul>
+							<li>⎵:18</li>
+						</ul>
+						<ul>
+							<li>20<ul>
+									<li>10<ul>
+											<li>a:5</li>
+											<li>l:5</li>
+										</ul>
+									</li>
+									<li>e:10</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>21<ul>
+									<li>o:10</li>
+									<li>i:11</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>28<ul>
+									<li>13<ul>
+											<li>6<ul>
+													<li>3<ul>
+															<li>v:1</li>
+															<li>,:2</li>
+														</ul>
+													</li>
+													<li>c:3</li>
+												</ul>
+											</li>
+											<li>m:7</li>
+										</ul>
+									</li>
+									<li>15<ul>
+											<li>r:7</li>
+											<li>8<ul>
+													<li>4<ul>
+															<li>n:2</li>
+															<li>.:2</li>
+														</ul>
+													</li>
+													<li>d:4,</li>
+												</ul>
+											</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>33<ul>
+									<li>16<ul>
+											<li>t:8</li>
+											<li>u:8</li>
+										</ul>
+									</li>
+									<li>17<ul>
+											<li>s:8</li>
+											<li>9<ul>
+													<li>p:4</li>
+													<li>q:5</li>
+												</ul>
+											</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+					<hr>
+					<div class="tree">
+						<ul>
+							<li>21<ul>
+									<li>o:10</li>
+									<li>i:11</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>28<ul>
+									<li>13<ul>
+											<li>6<ul>
+													<li>3<ul>
+															<li>v:1</li>
+															<li>,:2</li>
+														</ul>
+													</li>
+													<li>c:3</li>
+												</ul>
+											</li>
+											<li>m:7</li>
+										</ul>
+									</li>
+									<li>15<ul>
+											<li>r:7</li>
+											<li>8<ul>
+													<li>4<ul>
+															<li>n:2</li>
+															<li>.:2</li>
+														</ul>
+													</li>
+													<li>d:4,</li>
+												</ul>
+											</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>33<ul>
+									<li>16<ul>
+											<li>t:8</li>
+											<li>u:8</li>
+										</ul>
+									</li>
+									<li>17<ul>
+											<li>s:8</li>
+											<li>9<ul>
+													<li>p:4</li>
+													<li>q:5</li>
+												</ul>
+											</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>38<ul>
+									<li>⎵:18</li>
+									<li>20<ul>
+											<li>10<ul>
+													<li>a:5</li>
+													<li>l:5</li>
+												</ul>
+											</li>
+											<li>e:10</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+					<hr>
+					<div class="tree">
+						<ul>
+							<li>33<ul>
+									<li>16<ul>
+											<li>t:8</li>
+											<li>u:8</li>
+										</ul>
+									</li>
+									<li>17<ul>
+											<li>s:8</li>
+											<li>9<ul>
+													<li>p:4</li>
+													<li>q:5</li>
+												</ul>
+											</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>38<ul>
+									<li>⎵:18</li>
+									<li>20<ul>
+											<li>10<ul>
+													<li>a:5</li>
+													<li>l:5</li>
+												</ul>
+											</li>
+											<li>e:10</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>49<ul>
+									<li>21<ul>
+											<li>o:10</li>
+											<li>i:11</li>
+										</ul>
+									</li>
+									<li>28<ul>
+											<li>13<ul>
+													<li>6<ul>
+															<li>3<ul>
+																	<li>v:1</li>
+																	<li>,:2</li>
+																</ul>
+															</li>
+															<li>c:3</li>
+														</ul>
+													</li>
+													<li>m:7</li>
+												</ul>
+											</li>
+											<li>15<ul>
+													<li>r:7</li>
+													<li>8<ul>
+															<li>4<ul>
+																	<li>n:2</li>
+																	<li>.:2</li>
+																</ul>
+															</li>
+															<li>d:4,</li>
+														</ul>
+													</li>
+												</ul>
+											</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+					<hr>
+					<div class="tree">
+						<ul>
+							<li>49<ul>
+									<li>21<ul>
+											<li>o:10</li>
+											<li>i:11</li>
+										</ul>
+									</li>
+									<li>28<ul>
+											<li>13<ul>
+													<li>6<ul>
+															<li>3<ul>
+																	<li>v:1</li>
+																	<li>,:2</li>
+																</ul>
+															</li>
+															<li>c:3</li>
+														</ul>
+													</li>
+													<li>m:7</li>
+												</ul>
+											</li>
+											<li>15<ul>
+													<li>r:7</li>
+													<li>8<ul>
+															<li>4<ul>
+																	<li>n:2</li>
+																	<li>.:2</li>
+																</ul>
+															</li>
+															<li>d:4,</li>
+														</ul>
+													</li>
+												</ul>
+											</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+						<ul>
+							<li>71<ul>
+									<li>33<ul>
+											<li>16<ul>
+													<li>t:8</li>
+													<li>u:8</li>
+												</ul>
+											</li>
+											<li>17<ul>
+													<li>s:8</li>
+													<li>9<ul>
+															<li>p:4</li>
+															<li>q:5</li>
+														</ul>
+													</li>
+												</ul>
+											</li>
+										</ul>
+									</li>
+									<li>38<ul>
+											<li>⎵:18</li>
+											<li>20<ul>
+													<li>10<ul>
+															<li>a:5</li>
+															<li>l:5</li>
+														</ul>
+													</li>
+													<li>e:10</li>
+												</ul>
+											</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+					<hr>
+					<div class="tree">
+						<ul>
+							<li>120<ul>
+									<li>49<ul>
+											<li>21<ul>
+													<li>o:10</li>
+													<li>i:11</li>
+												</ul>
+											</li>
+											<li>28<ul>
+													<li>13<ul>
+															<li>6<ul>
+																	<li>3<ul>
+																			<li>v:1</li>
+																			<li>,:2</li>
+																		</ul>
+																	</li>
+																	<li>c:3</li>
+																</ul>
+															</li>
+															<li>m:7</li>
+														</ul>
+													</li>
+													<li>15<ul>
+															<li>r:7</li>
+															<li>8<ul>
+																	<li>4<ul>
+																			<li>n:2</li>
+																			<li>.:2</li>
+																		</ul>
+																	</li>
+																	<li>d:4,</li>
+																</ul>
+															</li>
+														</ul>
+													</li>
+												</ul>
+											</li>
+										</ul>
+									</li>
+									<li>71<ul>
+											<li>33<ul>
+													<li>16<ul>
+															<li>t:8</li>
+															<li>u:8</li>
+														</ul>
+													</li>
+													<li>17<ul>
+															<li>s:8</li>
+															<li>9<ul>
+																	<li>p:4</li>
+																	<li>q:5</li>
+																</ul>
+															</li>
+														</ul>
+													</li>
+												</ul>
+											</li>
+											<li>38<ul>
+													<li>⎵:18</li>
+													<li>20<ul>
+															<li>10<ul>
+																	<li>a:5</li>
+																	<li>l:5</li>
+																</ul>
+															</li>
+															<li>e:10</li>
+														</ul>
+													</li>
+												</ul>
+											</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
 					</div>
 
+					<p>When there is only one node remaining in the queue, we have our Huffman tree.</p>
 				</div>
+
+			</div>
+		</div>
+
+		<h2>Trees and Graphs</h2>
+		<div>
+			<h3>Breadth First Search</h3>
+			<div class="fmcode">
+				\PROCEDURE{BFS}{G,s}
+				\FOREACH{\TYPE{vertex} u}{G.V-\{s\}}
+				\LET{u.color}{\CONST{white}}
+				\LET{u.d}{\infty}
+				\LET{u.\pi}{\NIL}
+				\ENDFOREACH
+				\LET{s.color}{\CONST{gray}}
+				\LET{s.d}{0}
+				\LET{s.\pi}{\NIL}
+				\LET{Q}{\emptyset}
+				\CALL{Enqueue}{Q,s}
+				\WHILE{Q\neq\emptyset}
+				\LET{u}{\CALL{Dequeue}{Q}}
+				\FOREACH{v}{G.Adj[u]}
+				\IF{v.color == \CONST{white}}
+				\LET{v.color}{\CONST{gray}}
+				\LET{v.d}{u.d + 1}
+				\LET{v.\pi}{u}
+				\CALL{Enqueue}{Q,v}
+				\ENDIF
+				\ENDFOREACH
+				\LET{u.color}{\CONST{black}}
+				\ENDWHILE
+				\ENDPROCEDURE
 			</div>
 		</div>
 	</div>
+	</div>
+
 
 	<div class="side-col"></div>
 
 </body>
+
+</html>

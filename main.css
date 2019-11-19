@@ -7,6 +7,17 @@ body {
 	background-color: #333;
 }
 
+.main {
+	width: 66%;
+	margin: auto;
+}
+
+@media screen and (max-width: 600px) {
+	.main {
+		width: 100%;
+	}
+}
+
 h1, h2, h3, h4, h5, h6 {
 	margin-block-end: .33em;
 }
@@ -20,8 +31,19 @@ h1+div, h2+div, h3+div, h4+div, h5+div, h6+div {
 	margin-inline-start: 2em;
 }
 
-mjx-container[display="true"] {
+.katex-display {
 	display: inline-block !important;
+}
+
+.katex {
+	font-size: 1.1em;
+}
+
+/* textsc hack */
+
+.katex .mathtt {
+	font-family: KaTeX_Main;
+	font-variant: small-caps;
 }
 
 /* Column Display */
@@ -48,6 +70,7 @@ div.column {
 
 .tree>ul {
 	padding-bottom: 1em;
+	display: inline-block;
 }
 
 .tree ul::after {
@@ -62,7 +85,7 @@ div.column {
 	text-align: center;
 	list-style-type: none;
 	position: relative;
-	padding: 1em .5em 0 .5em;
+	padding: 1em 0 0 0;
 }
 
 .tree li::before, .tree li::after {
@@ -71,7 +94,7 @@ div.column {
 	top: 0;
 	right: 50%;
 	border-top: 1px solid #ccc;
-	width: 50%;
+	width: 60%;
 	height: 1em;
 }
 
@@ -86,20 +109,20 @@ div.column {
 }
 
 .tree li:only-child {
-	padding-top: 0;
+	padding: 0;
 }
 
 .tree li:first-child::before, .tree li:last-child::after {
 	border: 0 none;
 }
 
+.tree li:first-child::after {
+	border-radius: 5px 0 0 0;
+}
+
 .tree li:last-child::before {
 	border-right: 1px solid #ccc;
 	border-radius: 0 5px 0 0;
-}
-
-.tree li:first-child::after {
-	border-radius: 5px 0 0 0;
 }
 
 .tree ul ul::before {
